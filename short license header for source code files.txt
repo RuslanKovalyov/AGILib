@@ -1,0 +1,21 @@
+# Copyright 2023 Ruslan Kovalev
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+
+Include a comment like this at the top of source code files. It briefly states the copyright, the license, where to find the full license text, and the warranty disclaimer.
+
+Please keep in mind that this isn't legally required for the Apache License 2.0, but it's often considered a good practice. For some other licenses, including a license header in each file might be required or recommended.
+
+Also, be aware that if a file is under a different license, it should have a different header that reflects the correct license.
