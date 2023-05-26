@@ -21,7 +21,7 @@ class BaseNeuron:
         pass
 
 
-class SpecialNeuron(BaseNeuron):
+class LIFNeuron(BaseNeuron): # LIF = Leaky Integrate-and-Fire
     """
     The SpecialNeuron class represents a more specialized type of neuron, building upon the base functionality provided by BaseNeuron.
     """
