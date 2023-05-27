@@ -34,59 +34,64 @@ AGILib/
 
         └── ...
 
-│   ├── synapses.py
-│   │   ├── class BaseSynaps
-│   │   ├── class SynapsX(BaseSynaps)
-│   │   └── ...
-│   │
-│   ├── dendrites.py
-│   │   ├── class BaseDendrit
-│   │   ├── class DendritX(BaseDendrit)
-│   │   └── ...
-│   │
-│   ├── membranes.py
-│   │   ├── class BaseMembrane
-│   │   ├── class MembraneX(BaseMembrane)
-│   │   └── ...
-│   │
-│   ├── cores.py
-│   │   ├── class BaseCore
-│   │   │   ├── self.nucleus
-│   │   │   └── ...
-│   │   ├── class CoreX(BaseCore)
-│   │   └── ...
-│   │
-│   ├── axons.py
-│   │   ├── class BaseAxon
-│   │   ├── class AxonX(BaseAxon)
-│   │   │   └── ...
-│   │   └── ...
-│   │
-│   ├── neurons.py
-│   │   ├── class BaseNeuron
-│   │   ├── class NeuronLIF(BaseNeuron)
-│   │   └── ...
-│   │
-│   ├── layers.py
-│   │   ├── class BaseLayer
-│   │   │   └──def feedforward()
-│   │   ├── class Layer1(BaseLayer)
-│   │   └── ...
-│   │
-│   └──  networks.py
-│       ├── class BaseNet
-│       ├── class NetVisualCortex(BaseNet)
-│       └── ...
-│
+    ├── synapses.py
+        ├── class BaseSynaps
+        ├── class SynapsX(BaseSynaps)
+        └── ...
+
+    ├── dendrites.py
+        ├── class BaseDendrit
+        ├── class DendritX(BaseDendrit)
+        └── ...
+
+    ├── membranes.py
+        ├── class BaseMembrane
+        ├── class MembraneX(BaseMembrane)
+        └── ...
+
+    ├── cores.py
+        ├── class BaseCore
+        │   ├── self.nucleus
+        │   └── ...
+        ├── class CoreX(BaseCore)
+        └── ...
+
+    ├── axons.py
+        ├── class BaseAxon
+        ├── class AxonX(BaseAxon)
+        │   └── ...
+        └── ...
+
+    ├── neurons.py
+        ├── class BaseNeuron
+        ├── class NeuronLIF(BaseNeuron)
+        └── ...
+
+    ├── layers.py
+        ├── class BaseLayer
+        │   └──def feedforward()
+        ├── class Layer1(BaseLayer)
+        └── ...
+
+    └──  networks.py
+        ├── class BaseNet
+        ├── class NetVisualCortex(BaseNet)
+        └── ...
+
 ├── learning_rules/
-│       └── ...
+    └── ...
+
 ├── utils/
-│       └── ...
+    └── ...
+
 ├── tests/
-│       └── ...
+    └── ...
+    
 ├── examples/
-│       └── ...
+    └── ...
+
 ├── LICENSE
+
 └── README.md
 
 
