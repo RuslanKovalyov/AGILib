@@ -192,9 +192,9 @@ Show and Tell (examples/)
 The examples/ directory is our 'show and tell' stage. It hosts scripts showcasing the library's usage in real-world scenarios, giving you a practical sense of what the library can achieve.
 
 Legal and User Guide
-Finally, we have the LICENSE and `README
+Finally, we have the LICENSE and README
 
-
+'
 #3 Guidelines for Developing an Intuitive and User-Friendly AGI Library.
 
     * Consistent API: Aim to provide a consistent and intuitive API across all modules of the library. Each component should have predictable behavior, making the library easy to learn and use.
@@ -206,3 +206,4 @@ Finally, we have the LICENSE and `README
     * Modular Design: Design the library with modularity in mind. Separate modules should be created for different aspects like neuron types, network layers, learning rules, etc. This way, users can import and use only the components they need.
 
     Error Handling & Testing: Incorporate clear and informative error messages to facilitate debugging. Implement a comprehensive suite of tests to ensure the functionality of your library, improving its reliability.
+'
