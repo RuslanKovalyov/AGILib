@@ -23,13 +23,12 @@ Researchers, developers, and enthusiasts are invited to participate in the creat
 1. STRUCTURE:
 
 AGILib/
-│
 ├── snn/
-│   ├── neurotransmitters.py
-│   │   ├── class BaseTransmitter
-│   │   ├── class TransmitterX(BaseTransmitter)
-│   │   └── ...
-│   │
+|    ├── neurotransmitters.py
+|    |    ├── class BaseTransmitter
+|    |    ├── class TransmitterX(BaseTransmitter)
+|    |    └── ...
+
 │   ├── synapses.py
 │   │   ├── class BaseSynaps
 │   │   ├── class SynapsX(BaseSynaps)
