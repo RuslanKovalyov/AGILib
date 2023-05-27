@@ -1,4 +1,4 @@
-AGILib - In-depth Guide
+# AGILib - In-depth Guide
 
 Let's delve deeper into the AGILib! Artificial General Intelligence library (AGILib) is a modular neural network library in Python, dedicated to developing a platform for general AI. By offering unique out-of-the-box solutions, AGILib encourages research, exploration, and collaboration in AI creation. The project emphasizes transparency, using clear and understandable Python code to avoid the "black box" paradigm, thus promoting research and a deeper understanding of the underlying algorithms.
 
@@ -16,11 +16,11 @@ Researchers, developers, and enthusiasts are invited to participate in the creat
 
 🤖😃⚙️Lib.
 
-====================================
+#==================================#
 #    Lib STRUCTURE & EXPLANATION   #
-====================================
+#==================================#
 
-1. STRUCTURE:
+#1 STRUCTURE:
 
 AGILib/
 
@@ -92,7 +92,7 @@ AGILib/
     └── README.md
 
 
-2. EXPLANATION
+#2 EXPLANATION
 
 The Spiking Neural Network Architecture (snn/)
 Within the snn/ directory, we delve into the hierarchical design of the Spiking Neural Network, where each component serves a specific role and seamlessly integrates into the larger system. The Python files within this directory act as building blocks, nesting within one another to constitute the complete network.
@@ -195,14 +195,14 @@ Legal and User Guide
 Finally, we have the LICENSE and `README
 
 
-3. Guidelines for Developing an Intuitive and User-Friendly AGI Library.
+#3 Guidelines for Developing an Intuitive and User-Friendly AGI Library.
 
-    # Consistent API: Aim to provide a consistent and intuitive API across all modules of the library. Each component should have predictable behavior, making the library easy to learn and use.
+    * Consistent API: Aim to provide a consistent and intuitive API across all modules of the library. Each component should have predictable behavior, making the library easy to learn and use.
 
-    # Comprehensive Documentation: The documentation should be comprehensive, covering all functions and classes in detail. It should clarify the purpose, inputs, and outputs of each function, supplemented with usage examples where possible.
+    * Comprehensive Documentation: The documentation should be comprehensive, covering all functions and classes in detail.It should clarify the purpose, inputs, and outputs of each function, supplemented with usage examples where possible.
 
-    # Practical Examples: Develop practical examples demonstrating how to use the library effectively. These examples should showcase the capabilities of the library and serve as a starting point for users.
+    * Practical Examples: Develop practical examples demonstrating how to use the library effectively. These examples should showcase the capabilities of the library and serve as a starting point for users.
 
-    # Modular Design: Design the library with modularity in mind. Separate modules should be created for different aspects like neuron types, network layers, learning rules, etc. This way, users can import and use only the components they need.
+    * Modular Design: Design the library with modularity in mind. Separate modules should be created for different aspects like neuron types, network layers, learning rules, etc. This way, users can import and use only the components they need.
 
-    # Error Handling & Testing: Incorporate clear and informative error messages to facilitate debugging. Implement a comprehensive suite of tests to ensure the functionality of your library, improving its reliability.
+    Error Handling & Testing: Incorporate clear and informative error messages to facilitate debugging. Implement a comprehensive suite of tests to ensure the functionality of your library, improving its reliability.
