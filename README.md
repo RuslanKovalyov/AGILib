@@ -205,4 +205,4 @@ Finally, we have the LICENSE and README
 
     * Modular Design: Design the library with modularity in mind. Separate modules should be created for different aspects like neuron types, network layers, learning rules, etc. This way, users can import and use only the components they need.
 
-    Error Handling & Testing: Incorporate clear and informative error messages to facilitate debugging. Implement a comprehensive suite of tests to ensure the functionality of your library, improving its reliability.
+    * Error Handling & Testing: Incorporate clear and informative error messages to facilitate debugging. Implement a comprehensive suite of tests to ensure the functionality of your library, improving its reliability.
