@@ -16,7 +16,9 @@ Researchers, developers, and enthusiasts are invited to participate in the creat
 
 🤖😃⚙️Lib.
 
+==================================
 #    Lib STRUCTURE & EXPLANATION   #
+==================================
 
 #1 STRUCTURE:
 
