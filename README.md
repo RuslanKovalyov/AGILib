@@ -30,8 +30,8 @@ AGILib/
             └── ...
 
         ├── synapses.py
-            ├── class BaseSynaps
-            ├── class SynapsX(BaseSynaps)
+            ├── class PreSynapse
+            ├── class PostSynapse
             └── ...
 
         ├── dendrites.py
