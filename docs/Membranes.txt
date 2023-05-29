@@ -1,0 +1,37 @@
+Membrane Class
+The Membrane class provides the basic structure for a neuronal membrane in a spiking neural network. It contains functions to handle spikes, resetting after spikes, and managing the resting and threshold potentials.
+
+Attributes:
+
+    rest (float):The resting potential of the neuron. Default value is 0.0.
+
+    threshold (float): The threshold potential for the neuron. If the membrane potential (v_m) crosses this value, a spike is triggered. Default value is 20.0.
+    
+    reset_ratio (float): This ratio determines the reset potential of the neuron after a spike. The reset potential is calculated as reset = rest + reset_ratio * (threshold - rest). The range for this attribute is between 0 and 1. Default value is 0.05.
+    
+    leakage (float): The leakage rate of the membrane potential. This value represents the percentage of the membrane potential that leaks out each step. Default value is 0.5.
+    
+    v_m (float): The current membrane potential. This value is initially set to the resting potential.
+    
+    spike (bool): Indicates if a spike has been generated or not. This value is initially set to False.
+
+Methods:
+    reset(): This function calculates the membrane potential value after a spike has been triggered. The reset value is calculated based on the reset_ratio. It returns the reset membrane potential.
+
+    step(input_value, refractory): This function simulates a single time step for the neuron. It takes two arguments: input_value (float), which is the input to the neuron for the current time step, and refractory (bool), which indicates whether the neuron is in a refractory period or not. If the neuron is in a refractory period, the membrane potential is reset and no spike is generated. If the neuron is not in a refractory period, the membrane potential is updated based on the input value. If the updated membrane potential crosses the threshold, a spike is triggered and the membrane potential is reset. If the membrane potential is below the threshold, a leakage operation is performed and no spike is generated.
+
+
+Note: In this class, the membrane potential v_m, resting potential rest, and threshold threshold are measured in arbitrary units. The leakage rate leakage is measured in percentage. The reset ratio reset_ratio is a unitless value between 0 and 1.
+
+Example Usage:
+
+# Create a membrane with default values
+membrane = Membrane()
+
+# Step the membrane with an input value of 15 and refractory status False
+membrane.step(15, False)
+
+# Print current membrane potential and spike status
+print(membrane.v_m)
+print(membrane.spike)
+
