@@ -58,7 +58,28 @@ class MembraneTest:
         assert membrane.v_m == 2, "\n\n***\tTest 5 failed: v_m should be reset to 2"
         print('\n\tTest 5: Passed!')
 
+        # Test 6: Single negative input, should not generate a spike (inhibitory effect on a neuron)
+        membrane = Membrane(rest=0, threshold=20, reset_ratio=0.1, leakage=20)
 
+        membrane.step(input_value=-10, refractory=False)
+        assert membrane.v_m == -8, "\n\n***\tTest 6 failed: v_m should be reset to -8 (leakage 20%)"
+        assert membrane.spike is False, "\n\n***\tTest 6 failed: There shouldn't be a spike"
+        print('\n\tTest 6: Passed!')
+
+        # Test 7: Series of negative inputs and one positive input equal to threshold not enough to generate a spike
+        membrane = Membrane(rest=0, threshold=20, reset_ratio=0.1, leakage=20)
+        
+        membrane.step(input_value=-10, refractory=False)
+        assert membrane.v_m == -8, "\n\n***\tTest 7 failed: v_m should be reset to -8 (leakage 20%)"
+        assert membrane.spike is False, "\n\n***\tTest 7 failed: There shouldn't be a spike"
+        membrane.step(input_value=-2, refractory=False)
+        assert membrane.v_m == -8, "\n\n***\tTest 7 failed: v_m should be reset to -8 (leakage 20%)"
+        membrane.step(input_value=25, refractory=False)
+        assert membrane.spike is False, "\n\n***\tTest 7 failed: There shouldn't be a spike"
+        assert membrane.v_m == 13.6, "\n\n***\tTest 7 failed: v_m should be reset to 13.6 (leakage 20%)"
+        print('\n\tTest 7: Passed!')
+
+        
         print("\n-----All membrane tests passed!-----\n")
 
 # Run the test
