@@ -1,6 +1,9 @@
 # myfiles
 PyPI_Deployment_Guidelines
 notes/
+.vscode
+TO-DO
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
