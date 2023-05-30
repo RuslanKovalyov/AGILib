@@ -1,0 +1,25 @@
+Synapse Class
+The Synapse class in this model represents a simplified, abstracted form of a biological synapse. It primarily serves as the connection point between axons and dendrites within a neural network, enabling signal transmission and modulation of various neuronal states. It's important to highlight that this class does not aim to perfectly replicate all functionalities of a biological synapse; instead, it adopts a simplified approach suitable for a digital computational model.
+
+Attributes:
+    neurotransmitter_level: Current availability of neurotransmitters. Range is from 0 (empty) to max_level.
+    
+    max_level: Maximum capacity of neurotransmitters the synapse can hold.
+    
+    regenerate_rate: Rate at which the synapse regenerates neurotransmitters, expressed as a fraction of total capacity.
+    
+    transmitter_type: This parameter represents the type of neurotransmitter used by this synapse. It can be dynamically updated during both the learning process and normal operation to modify network responses. It can represent one or a combination of different neurotransmitter types.
+    
+    received_transmitter: Type of neurotransmitter that the synapse last received. An empty string indicates no neurotransmitter was received.
+
+Methods:
+    __init__(self): Initializes the synapse with a specific neurotransmitter type, initial level, and regeneration rate.
+   
+    transmit(self): Handles the firing event of the connected neuron's axon by decreasing the neurotransmitter level and recording the transmitted neurotransmitter type.
+    
+    regenerate(self): Regenerates neurotransmitters at each time step based on the regeneration rate. It ensures the neurotransmitter level does not exceed the maximum capacity.
+    
+    receive(self): Receives a neurotransmitter, records its type, and resets the received neurotransmitter to an empty string. It returns the type of the received neurotransmitter.
+
+
+Although the Synapse class offers various functionalities such as the regulation of dendrite weights, the transmission of axon signals, and the provision of neurotransmitters to neuron cores, it's a simplified digital approximation of biological synaptic mechanisms. Certain complexities of biological synapses have been abstracted or omitted for simplicity and computational efficiency.
