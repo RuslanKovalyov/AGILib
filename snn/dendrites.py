@@ -6,6 +6,9 @@ class Dendrite:
         self.weight = weight  # Synaptic weight
         self.input_mediator = ""  # Input neuromediator
         self.post_synapse = None  # Synapse object (will be set by core from axon's free synapses)
+    
+    def connect(self, synapse_object): # connect this dendrite to axonic synapse
+        self.post_synapse = synapse_object
 
     def set_weight(self, new_weigth_value):
         self.weight = new_weigth_value
