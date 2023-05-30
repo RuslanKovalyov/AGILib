@@ -111,7 +111,56 @@ def neuron_usage():
     neuron.step()
     print("Membrane potential: ", neuron.core.membrane.v_m) # Should be less than 2 (1.99) because refractory period is finished and leakage makes it closer to Resting membrane potential
 
+def pyramid(): # three neurons, two of them sensory, one of them motor [1,2] -> [3]
+    neuron_1 = Neuron(core = Core(
+                        dendrites =[Dendrite(weight=20) for _ in range(1)], # 2 dendrites TODO: randomize weights on first init
+                        membrane = Membrane(threshold=20.0, reset_ratio=0.1, leakage=0.5),
+                        axon = Axon(
+                            [Synapse(transmitter_type='some_neurotransmitter', initial_level=100, regenerate_rate=0.1) for _ in range(1)]), # 1 synapses
+                        refractory_period=0
+                        )
+            )# seted like sensory neuron
 
-synapse_usage()
-axon_usage()
-neuron_usage()
+    neuron_2 = Neuron(core = Core(
+                        dendrites =[Dendrite(weight=20) for _ in range(1)], # 2 dendrites TODO: randomize weights on first init
+                        membrane = Membrane(threshold=20.0, reset_ratio=0.1, leakage=0.5),
+                        axon = Axon(
+                            [Synapse(transmitter_type='some_neurotransmitter', initial_level=100, regenerate_rate=0.1) for _ in range(1)]), # 1 synapses
+                        refractory_period=0
+                        )
+            )# seted like sensory neuron
+
+    neuron_3 = Neuron(core = Core(
+                        dendrites =[Dendrite(weight=5) for _ in range(2)], # 2 dendrites TODO: randomize weights on first init
+                        membrane = Membrane(threshold=20.0, reset_ratio=0.1, leakage=0.5),
+                        axon = Axon(
+                            [Synapse(transmitter_type='some_neurotransmitter', initial_level=100, regenerate_rate=0.1) for _ in range(1)]), # 1 synapses
+                        refractory_period=0
+                        )
+            ) # seted like motor neuron
+    nList = []
+    nList.append(neuron_1)
+    nList.append(neuron_2)
+    nList.append(neuron_3)
+
+    # initialize connections between neurons
+    neuron_3.core.dendrites[0].connect(neuron_1.core.axon.synapses[0])
+    neuron_3.core.dendrites[1].connect(neuron_2.core.axon.synapses[0])
+
+
+    for _ in range(10):
+        # initialize input to sensory neurons
+        neuron_1.core.dendrites[0].input_mediator = ""
+        neuron_2.core.dendrites[0].input_mediator = "some_neurotransmitter"
+        # signal forwarding
+        for n in nList:
+            n.step()
+        # print results
+        print( '\n\n Neuron_3 | mV-', neuron_3.core.membrane.v_m, '| output: ', neuron_3.core.axon.synapses[0].receive())
+
+
+
+# synapse_usage()
+# axon_usage()
+# neuron_usage()
+# pyramid()
