@@ -5,13 +5,17 @@ class Dendrite:
     def __init__(self, weight=10):
         self.weight = weight  # Synaptic weight
         self.input_mediator = ""  # Input neuromediator
+        self.post_synapse = None  # Synapse object (will be set by core from axon's free synapses)
 
     def set_weight(self, new_weigth_value):
         self.weight = new_weigth_value
 
     def step(self):
+        if self.post_synapse:
+            self.input_mediator = self.post_synapse.receive()
         if self.input_mediator != "":
             # TODO: do some mediators logic here (like spreading dopamine to core, changing weights, etc.)
+            
             self.input_mediator = ""
             return self.weight
         else:
