@@ -2,7 +2,6 @@ Membrane Class
 The Membrane class provides the basic structure for a neuronal membrane in a spiking neural network. It contains functions to handle spikes, resetting after spikes, and managing the resting and threshold potentials.
 
 Attributes:
-
     rest (float):The resting potential of the neuron. Default value is 0.0.
 
     threshold (float): The threshold potential for the neuron. If the membrane potential (v_m) crosses this value, a spike is triggered. Default value is 20.0.
@@ -22,16 +21,4 @@ Methods:
 
 
 Note: In this class, the membrane potential v_m, resting potential rest, and threshold threshold are measured in arbitrary units. The leakage rate leakage is measured in percentage. The reset ratio reset_ratio is a unitless value between 0 and 1.
-
-Example Usage:
-
-# Create a membrane with default values
-membrane = Membrane()
-
-# Step the membrane with an input value of 15 and refractory status False
-membrane.step(15, False)
-
-# Print current membrane potential and spike status
-print(membrane.v_m)
-print(membrane.spike)
 
