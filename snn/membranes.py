@@ -23,5 +23,7 @@ class Membrane: # Basic membrane model
                 self.v_m = self.reset()         # Reset the membrane potential
                 self.spike = True               # Spike generated
             else:  # If not in the refractory period and the potential is below threshold...
-                self.v_m -= (self.v_m / 100)* self.leakage # Leak the membrane potential
+                # leak the membrane potential by a percentage of the difference between the current membrane potential and the resting membrane potential
+                # also raund the result to 3 decimal places
+                self.v_m = round(self.v_m - ((self.v_m - self.rest) / 100) * self.leakage, 6) # TODO: more testing with different self.rest values
                 self.spike = False             # No spike generated
