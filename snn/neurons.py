@@ -49,4 +49,51 @@ class Neuron:
 
     def step(self):
         self.core.step()
+
+class SensorNeuron:
+    def __init__(self):
+        self.input_value = 0 # input value from sensor can be any number from 0 to 1
+        self.sensitivity = 0.5 # sensitivity of the sensor
+        self.descharge_rate = 0.1 # rate at which the sensor discharges
+        self.output_value = False # output value to sensor can be True or False
+
+    def set_input(self, value):
+        self.input_value = round(self.input_value + value, 3)
+        if self.input_value > 1:
+            self.input_value = 1
+        
+    def step(self):
+        if self.input_value > self.sensitivity:
+            self.output_value = True
+            self.input_value = 0
+        else:
+            self.output_value = False
+            if self.input_value > 0:
+                self.input_value = round(self.input_value - self.descharge_rate, 3)
+                if self.input_value < 0:
+                    self.input_value = 0
+
+    def receive(self):
+        if self.output_value:
+            return "simple-signal-mediator"
+        else:
+            return ""
+
+class MotorNeuron:
+    def __init__(self):
+        self.output_value = 0 # output value to motor can be any number from 0 to 1
+        self.post_synapses = []  # List of Dendritic synapse objects
+
+    def connect(self, synapse_objects = []): # connect MotorNeuron to axonic synapses of MiddleNeurons
+        self.post_synapses = synapse_objects
+
+    def step(self):
+        self.output_value = 0
+        for synapse in self.post_synapses:
+            if synapse.receive() != "":
+                self.output_value += 1
+        self.output_value = round(self.output_value / len(self.post_synapses), 3)
+
+
+    
     
