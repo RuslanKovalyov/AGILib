@@ -23,6 +23,11 @@ def synapse_usage():
     print("Neurotransmitter level after regenerate: ", synapse.neurotransmitter_level) # Should be 99.1
 
 def axon_usage():
+
+    membrane = Membrane(threshold=20.0, reset_ratio=0.1, leakage=0.5)
+    membrane.v_m = 0
+    membrane.spike = True
+
     # Example of Axon usage
     print('\n\n\n')
     print('Axon usage example:')
@@ -30,11 +35,11 @@ def axon_usage():
 
     synapses = [Synapse(transmitter_type='dopamine', initial_level=100, regenerate_rate=0.1) for _ in range(10)]
     axon = Axon(synapses)
-
-    axon.step(v_m=0, spike=True) # Transmit neurotransmitter
+    axon.step(membrane) # Transmit neurotransmitter
     print("Neurotransmitter level: ", synapses[0].neurotransmitter_level)   # Should be 99
     print("Received neurotransmitter: ", synapses[0].receive())             # Should be "dopamine"
-    axon.step(v_m=0, spike=False) # Regenerate neurotransmitter
+    membrane.spike = False
+    axon.step(membrane) # Regenerate neurotransmitter
     print("Neurotransmitter level after regenerate: ", synapses[0].neurotransmitter_level)  # Should be 99.1
     print("Received neurotransmitter: ", synapses[0].receive())             # Should be ""
 
@@ -158,9 +163,78 @@ def pyramid(): # three neurons, two of them sensory, one of them motor [1,2] -> 
         # print results
         print( '\n\n Neuron_3 | mV-', neuron_3.core.membrane.v_m, '| output: ', neuron_3.core.axon.synapses[0].receive())
 
+def PyramedTrainer(): # create pyramid and train it
+    neuron_1 = Neuron(core = Core(
+                        dendrites =[Dendrite(weight=20) for _ in range(1)], # 2 dendrites TODO: randomize weights on first init
+                        membrane = Membrane(threshold=20.0, reset_ratio=0.1, leakage=0.5),
+                        axon = Axon(
+                            [Synapse(transmitter_type='some_neurotransmitter', initial_level=10, regenerate_rate=1) for _ in range(1)]), # 1 synapses
+                        refractory_period=0
+                        )
+            )# seted like sensory neuron
+
+    neuron_2 = Neuron(core = Core(
+                        dendrites =[Dendrite(weight=20) for _ in range(1)], # 2 dendrites TODO: randomize weights on first init
+                        membrane = Membrane(threshold=20.0, reset_ratio=0.1, leakage=0.5),
+                        axon = Axon(
+                            [Synapse(transmitter_type='some_neurotransmitter', initial_level=10, regenerate_rate=1) for _ in range(1)]), # 1 synapses
+                        refractory_period=0
+                        )
+            )# seted like sensory neuron
+
+    neuron_3 = Neuron(core = Core(
+                        dendrites =[Dendrite(weight=2) for _ in range(2)], # 2 dendrites TODO: randomize weights on first init
+                        membrane = Membrane(threshold=20.0, reset_ratio=0.1, leakage=0.5),
+                        axon = Axon(
+                            [Synapse(transmitter_type='some_neurotransmitter', initial_level=100, regenerate_rate=0.01) for _ in range(1)]), # 1 synapses
+                        refractory_period=0,
+                        mode='cycle-train',
+                        )
+            ) # seted like motor neuron
+    nList = []
+    nList.append(neuron_1)
+    nList.append(neuron_2)
+    nList.append(neuron_3)
+
+    # initialize connections between neurons
+    neuron_3.core.dendrites[0].connect(neuron_1.core.axon.synapses[0])
+    neuron_3.core.dendrites[1].connect(neuron_2.core.axon.synapses[0])
+
+    for _ in range(100): # train neuron_3 to react on active Neuron_1 if Neuron_2 is not active. if both active - no reaction
+        # initialize input to sensory neurons
+        neuron_1.core.dendrites[0].input_mediator = "some_neurotransmitter"
+        neuron_2.core.dendrites[0].input_mediator = "some_neurotransmitter"
+
+        # signal forwarding
+        for n in nList:
+            n.step()
+
+        # train neuron_3
+        if neuron_3.core.mode == 'cycle-train':
+            if neuron_3.core.axon.synapses[0].received_transmitter != "some_neurotransmitter":
+                print('error -0.1', "fire=",neuron_3.core.membrane.spike,'\t', 'weights', neuron_3.core.dendrites[0].weight, neuron_3.core.dendrites[1].weight, '\t output', neuron_3.core.axon.synapses[0].receive())
+                neuron_3.simple_cycle_by_cycle_lerning(error = -0.1)
+            else:
+                print('error  0.1', "fire=",neuron_3.core.membrane.spike,'\t', 'weights', neuron_3.core.dendrites[0].weight, neuron_3.core.dendrites[1].weight, '\t output', neuron_3.core.axon.synapses[0].receive())
+                neuron_3.simple_cycle_by_cycle_lerning(error = 0.1)
+            # print( '\n', neuron_3.core.dendrites[0].history_of_inputs, '\n',neuron_3.core.dendrites[1].history_of_inputs,'\n\n')
+            
+
+    # train neuron_3 to react on Neuron_1 or Neuron_2 but not both
+    # for _ in range(10):
+    #     # initialize input to sensory neurons
+    #     neuron_1.core.dendrites[0].input_mediator = ""
+    #     neuron_2.core.dendrites[0].input_mediator = "some_neurotransmitter"
+    #     # signal forwarding
+    #     for n in nList:
+    #         n.step()
+    #     # print results
+    #     print( '\n\n Neuron_3 | mV-', neuron_3.core.membrane.v_m, '| output: ', neuron_3.core.axon.synapses[0].receive())
+
 
 
 # synapse_usage()
 # axon_usage()
 # neuron_usage()
 # pyramid()
+PyramedTrainer()
