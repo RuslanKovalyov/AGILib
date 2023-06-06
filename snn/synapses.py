@@ -8,6 +8,9 @@ class Synapse:
         self.regenerate_rate = regenerate_rate      # Rate at which the synapse regenerates neurotransmitter (progressive)
         self.transmitter_type = transmitter_type    # Type of neurotransmitter this synapse uses
         self.received_transmitter = ""              # The type of received neurotransmitter (empty string if no transmitter)
+        
+        # for back propagation
+        self.parent_neuron = None # Neuron object
 
     # This function could be called whenever the neuron connected to this synapse's dendrite fires
     def transmit(self):

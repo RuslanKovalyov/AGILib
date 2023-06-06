@@ -1,3 +1,4 @@
+import random
 class Neuron:
     #core responsible for the neuron's behavior (all logic staff of dendrites, membrane, etc).
     #kernel responsible for the genomics of the neuron (how many dendrites, how many neurons, etc. it's also sets the parameters of all blocks like membrane lykage, dendrite weight, etc)
@@ -39,6 +40,34 @@ class Neuron:
 
                 pass # propagate the error with same sign to presynaptic neuron (connected to this dendrite)
                 # error will be divided (ower learning time/cycles ) in range form 1 to number of post synaptic neurons(this layer) for minimising the error in pretrained network.
+    
+    def backward_propagate(self, error):
+        # Apply the error to the current neuron
+        self.simple_cycle_by_cycle_lerning(error = error)
+        
+        # If this neuron has been activated in the previous step,
+        # propagate the error backwards recursively
+        if self.core.membrane.spike:
+
+            for dendrite in self.core.dendrites:
+                if dendrite.history_of_inputs[-1][0] != "":
+                    # Propagate the error backwards to the presynaptic neuron
+                    # associated with this dendrite
+                    if dendrite.post_synapse:
+                        if hasattr(dendrite.post_synapse, 'parent_neuron'):
+                            dendrite.post_synapse.parent_neuron.backward_propagate(error = error * dendrite.weight/10 ) # error * dendrite.weight? (not sure)
+            
+            pass
+        else:
+            for dendrite in self.core.dendrites:
+                if dendrite.history_of_inputs[-1][0] != "":
+                    # Propagate the error backwards to the presynaptic neuron
+                    # associated with this dendrite
+                    if dendrite.post_synapse:
+                        if hasattr(dendrite.post_synapse, 'parent_neuron'):
+                            dendrite.post_synapse.parent_neuron.backward_propagate(error = -error * dendrite.weight*random.uniform(0.5, 2) ) # error * dendrite.weight? (not sure)
+            pass # 1 if neuron is not activated then no need to propagate error backwards.
+                 # 2 propagate error with opposite sign? (not sure)
 
     def cumulative_lerning(self): # write error to history, make sum of all errors and make corrections of weights in sleep mode.
         pass

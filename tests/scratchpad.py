@@ -240,30 +240,23 @@ def PyramedTrainer(): # create pyramid and train it
 
 
 
-# synapse_usage()
-# axon_usage()
-# neuron_usage()
-# pyramid()
-# PyramedTrainer()
+# class Layer:
+#     def __init__(self, neurons):
+#         self.neurons = neurons  # A list of neurons
 
+#     def step(self):
+#         for neuron in self.neurons:
+#             neuron.step()
 
-class Layer:
-    def __init__(self, neurons):
-        self.neurons = neurons  # A list of neurons
+#     def get_outputs(self):
+#         return [neuron.output_value for neuron in self.neurons if type(neuron) == MotorNeuron]
 
-    def step(self):
-        for neuron in self.neurons:
-            neuron.step()
+#     def set_inputs(self, inputs):
+#         for i, input_value in enumerate(inputs):
+#             if type(self.neurons[i]) == SensorNeuron:
+#                 self.neurons[i].set_input(input_value)
 
-    def get_outputs(self):
-        return [neuron.output_value for neuron in self.neurons if type(neuron) == MotorNeuron]
-
-    def set_inputs(self, inputs):
-        for i, input_value in enumerate(inputs):
-            if type(self.neurons[i]) == SensorNeuron:
-                self.neurons[i].set_input(input_value)
-
-def simple_net():
+def simple_net(): # hand builded network
     # Please note that this network does not include back propagation mechanism, it's just a basic feed-forward network with simple cycle by cycle lerning.
     # Creating sensory neurons
     sensor_1 = SensorNeuron()
@@ -335,9 +328,164 @@ def simple_net():
         print("Output from Motor Neuron 2:", motor_2.output_value)
         print('\n')
 
-simple_net()
+
+def simple_net_2(): # builded network by using list comprehensions but back propagation is not implemented!
+    import random
+
+    # Create sensor neurons
+    num_sensors = 4
+    sensors = [SensorNeuron() for _ in range(num_sensors)]
+
+    # Define network topology
+    topology = [8,]
+
+    # Initialize empty list to hold all layers of neurons
+    layers = []
+
+    # Create each layer
+    for i, num_neurons in enumerate(topology):
+        # Create neurons for the layer
+        layer = [
+            Neuron(core=Core(
+                dendrites=[Dendrite(weight=random.uniform(0.1, 0.9))], 
+                membrane=Membrane(threshold=20.0, reset_ratio=0.1, leakage=0.5),
+                axon=Axon([Synapse(transmitter_type='simple-signal-mediator', initial_level=10, regenerate_rate=1)]),
+                refractory_period=0, mode='cycle-train')) for _ in range(num_neurons)
+        ]
+        # If this is the first layer, connect the neurons to the sensors
+        if i == 0:
+            for j in range(num_neurons):
+                layer[j].core.dendrites[0].connect(sensors[j % num_sensors])
+        # If this is not the first layer, connect the neurons to the neurons in the previous layer
+        else:
+            for j in range(num_neurons):
+                layer[j].core.dendrites[0].connect(layers[i-1][j % len(layers[i-1])].core.axon.synapses[0])
+        # Add the layer to the list of layers
+        layers.append(layer)
+
+    # Create motor neurons, each connected to a neuron in the last layer
+    num_motors = 4
+    motors = [MotorNeuron() for _ in range(num_motors)]
+    for i in range(num_motors):
+        motors[i].connect([layers[-1][i].core.axon.synapses[0]])
+
+    # Training
+    for _ in range(80):
+        # Set input for the sensors
+        for sensor in sensors:
+            sensor.set_input(random.uniform(0.5, 0.9))
+            sensor.step()
+
+        # Process the inputs with the neurons in each layer and train them
+        for layer in layers:
+            for neuron in layer:
+                neuron.step()
+                if neuron.core.membrane.spike:
+                    neuron.simple_cycle_by_cycle_lerning(error = 0.3)
+                else:
+                    neuron.simple_cycle_by_cycle_lerning(error = -0.3)
+
+        # Step the motors
+        for motor in motors:
+            motor.step()
+
+        # Output
+        for i, motor in enumerate(motors):
+            print(f"Output from Motor Neuron {i+1}: {motor.output_value}")
+        print('\n')
 
 def back_propagation():
-    pass
+    import random
 
+    # Create sensor neurons
+    num_sensors = 4
+    sensors = [SensorNeuron() for _ in range(num_sensors)]
+
+    # Define network topology
+    topology = [32, 4]
+
+    # Initialize empty list to hold all layers of neurons
+    layers = []
+
+    # Create each layer
+    for i, num_neurons in enumerate(topology):
+        # Create neurons for the layer
+        layer = [
+            Neuron(core=Core(
+                dendrites=[Dendrite(weight=random.uniform(0.1, 20))], 
+                membrane=Membrane(threshold=20.0, reset_ratio=0.1, leakage=0.5),
+                axon=Axon([Synapse(transmitter_type='simple-signal-mediator', initial_level=10, regenerate_rate=1)]),
+                refractory_period=0, mode='cycle-train')) for _ in range(num_neurons)
+        ]
+        # bind Synapse to parent Neuron
+        for neuron in layer:
+            neuron.core.axon.synapses[0].parent_neuron = neuron
+            
+
+        # If this is the first layer, connect the neurons to the sensors
+        if i == 0:
+            for j in range(num_neurons):
+                layer[j].core.dendrites[0].connect(sensors[j % num_sensors])
+        # If this is not the first layer, connect the neurons to the neurons in the previous layer
+        else:
+            for j in range(num_neurons):
+                layer[j].core.dendrites[0].connect(layers[i-1][j % len(layers[i-1])].core.axon.synapses[0])
+        # Add the layer to the list of layers
+        layers.append(layer)
+
+    # Create motor neurons, each connected to a neuron in the last layer
+    num_motors = 4
+    motors = [MotorNeuron() for _ in range(num_motors)]
+    for i in range(num_motors):
+        motors[i].connect([layers[-1][i].core.axon.synapses[0]])
+
+    # Training
+    for _ in range(10):
+        # Set input for the sensors
+        for sensor in sensors:
+            sensor.set_input(random.uniform(0.5, 0.9))
+            sensor.step()
+
+        # Process the inputs with the neurons in each layer and train them
+        for layer in layers:
+            for neuron in layer:
+                neuron.step()
+
+                    
+        errors = []  # You would calculate the appropriate errors here
+        for i, neuron in enumerate(layers[-1]):
+            # neuron.backward_propagate(errors[i])
+            if neuron.core.membrane.spike:
+                    neuron.backward_propagate(error = 10)
+            else:
+                neuron.backward_propagate(error = -10)
+
+
+
+
+        # Step the motors
+        for motor in motors:
+            motor.step()
+
+        # Output
+        for i, motor in enumerate(motors):
+            print(f"Output from Motor Neuron {i+1}: {motor.output_value}")
+        print('\n')
+
+
+
+# benchmark start time
+import time
+start_time = time.time()
+
+# synapse_usage()
+# axon_usage()
+# neuron_usage()
+# pyramid()
+# PyramedTrainer()
+# simple_net()
+# simple_net_2()
 back_propagation()
+
+# benchmark end time
+print("--- %s seconds ---" % (time.time() - start_time))
