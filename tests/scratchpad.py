@@ -1,6 +1,9 @@
-import sys
 import os
-# Add the parent directory to sys.path
+import random
+import sys
+import time
+
+# Adjusting the path
 current_directory = os.path.dirname(os.path.abspath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
@@ -12,7 +15,10 @@ from snn.synapses import Synapse
 from snn.cores import Core
 from snn.neurons import Neuron, SensorNeuron, MotorNeuron
 
-# Examples of using modules, separated with input/output simulation
+#-------------------------------------------------------------------------------------------------------------#
+# IT IS NOT A TESTS !!!, JUST SOME SCRATCHPAD TO PLAY WITH MODULES AND SEE HOW THEY WORK                      #
+# input/output simulations written hronologically together with development of modules and can be not actual. #
+#-------------------------------------------------------------------------------------------------------------#
 
 def synapse_usage():
     # Example of Synapse usage
@@ -220,10 +226,10 @@ def PyramedTrainer(): # create pyramid and train it
         if neuron_3.core.mode == 'cycle-train':
             if neuron_3.core.axon.synapses[0].received_transmitter != "some_neurotransmitter":
                 print('error -0.1', "fire=",neuron_3.core.membrane.spike,'\t', 'weights', neuron_3.core.dendrites[0].weight, neuron_3.core.dendrites[1].weight, '\t output', neuron_3.core.axon.synapses[0].receive())
-                neuron_3.simple_cycle_by_cycle_lerning(error = -0.1)
+                neuron_3.simple_cycle_by_cycle_learning(error = -0.1)
             else:
                 print('error  0.1', "fire=",neuron_3.core.membrane.spike,'\t', 'weights', neuron_3.core.dendrites[0].weight, neuron_3.core.dendrites[1].weight, '\t output', neuron_3.core.axon.synapses[0].receive())
-                neuron_3.simple_cycle_by_cycle_lerning(error = 0.1)
+                neuron_3.simple_cycle_by_cycle_learning(error = 0.1)
             # print( '\n', neuron_3.core.dendrites[0].history_of_inputs, '\n',neuron_3.core.dendrites[1].history_of_inputs,'\n\n')
             
 
@@ -237,24 +243,6 @@ def PyramedTrainer(): # create pyramid and train it
     #         n.step()
     #     # print results
     #     print( '\n\n Neuron_3 | mV-', neuron_3.core.membrane.v_m, '| output: ', neuron_3.core.axon.synapses[0].receive())
-
-
-
-# class Layer:
-#     def __init__(self, neurons):
-#         self.neurons = neurons  # A list of neurons
-
-#     def step(self):
-#         for neuron in self.neurons:
-#             neuron.step()
-
-#     def get_outputs(self):
-#         return [neuron.output_value for neuron in self.neurons if type(neuron) == MotorNeuron]
-
-#     def set_inputs(self, inputs):
-#         for i, input_value in enumerate(inputs):
-#             if type(self.neurons[i]) == SensorNeuron:
-#                 self.neurons[i].set_input(input_value)
 
 def simple_net(): # hand builded network
     # Please note that this network does not include back propagation mechanism, it's just a basic feed-forward network with simple cycle by cycle lerning.
@@ -308,17 +296,17 @@ def simple_net(): # hand builded network
         # Print current weights and apply learning
         if neuron_1.core.membrane.spike:
             print(f'Neuron 1 spiked, current weight: {neuron_1.core.dendrites[0].weight}')
-            neuron_1.simple_cycle_by_cycle_lerning(error = 0.3)
+            neuron_1.simple_cycle_by_cycle_learning(error = 0.3)
         else:
             print(f'Neuron 1 did not spike, current weight: {neuron_1.core.dendrites[0].weight}')
-            neuron_1.simple_cycle_by_cycle_lerning(error = -0.3)
+            neuron_1.simple_cycle_by_cycle_learning(error = -0.3)
 
         if neuron_2.core.membrane.spike:
             print(f'Neuron 2 spiked, current weight: {neuron_2.core.dendrites[0].weight}')
-            neuron_2.simple_cycle_by_cycle_lerning(error = 0.3)
+            neuron_2.simple_cycle_by_cycle_learning(error = 0.3)
         else:
             print(f'Neuron 2 did not spike, current weight: {neuron_2.core.dendrites[0].weight}')
-            neuron_2.simple_cycle_by_cycle_lerning(error = -0.3)
+            neuron_2.simple_cycle_by_cycle_learning(error = -0.3)
 
         motor_1.step()
         motor_2.step()
@@ -328,10 +316,7 @@ def simple_net(): # hand builded network
         print("Output from Motor Neuron 2:", motor_2.output_value)
         print('\n')
 
-
 def simple_net_2(): # builded network by using list comprehensions but back propagation is not implemented!
-    import random
-
     # Create sensor neurons
     num_sensors = 4
     sensors = [SensorNeuron() for _ in range(num_sensors)]
@@ -381,9 +366,9 @@ def simple_net_2(): # builded network by using list comprehensions but back prop
             for neuron in layer:
                 neuron.step()
                 if neuron.core.membrane.spike:
-                    neuron.simple_cycle_by_cycle_lerning(error = 0.3)
+                    neuron.simple_cycle_by_cycle_learning(error = 0.3)
                 else:
-                    neuron.simple_cycle_by_cycle_lerning(error = -0.3)
+                    neuron.simple_cycle_by_cycle_learning(error = -0.3)
 
         # Step the motors
         for motor in motors:
@@ -394,15 +379,14 @@ def simple_net_2(): # builded network by using list comprehensions but back prop
             print(f"Output from Motor Neuron {i+1}: {motor.output_value}")
         print('\n')
 
-def back_propagation():
-    import random
+def back_propagation_simple_cycle_by_cycle_train():
 
     # Create sensor neurons
     num_sensors = 4
     sensors = [SensorNeuron() for _ in range(num_sensors)]
 
     # Define network topology
-    topology = [32, 4]
+    topology = [32, 32, 4]
 
     # Initialize empty list to hold all layers of neurons
     layers = []
@@ -440,7 +424,7 @@ def back_propagation():
         motors[i].connect([layers[-1][i].core.axon.synapses[0]])
 
     # Training
-    for _ in range(10):
+    for _ in range(50):
         # Set input for the sensors
         for sensor in sensors:
             sensor.set_input(random.uniform(0.5, 0.9))
@@ -472,10 +456,7 @@ def back_propagation():
             print(f"Output from Motor Neuron {i+1}: {motor.output_value}")
         print('\n')
 
-
-
 # benchmark start time
-import time
 start_time = time.time()
 
 # synapse_usage()
@@ -485,7 +466,7 @@ start_time = time.time()
 # PyramedTrainer()
 # simple_net()
 # simple_net_2()
-back_propagation()
+back_propagation_simple_cycle_by_cycle_train()
 
 # benchmark end time
 print("--- %s seconds ---" % (time.time() - start_time))
