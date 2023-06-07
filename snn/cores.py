@@ -1,22 +1,45 @@
 class Core:
+    """
+    This class represents the core component of a Neuron, encompassing the neuron's dendrites, membrane, and axon. 
+    It coordinates the interactions between these components in a neuron's operation.
+
+    Attributes:
+        dendrites (list): List of dendrites for this neuron.
+        membrane (Membrane): The neuron's membrane.
+        axon (Axon): The neuron's axon.
+        refractory_period (float): Refractory period after a spike (in cycles).
+        refractory_time_remaining (float): Time left in refractory period.
+        mode (str): Working mode of the neuron. Can be "default" or "train".
+    """
+
     def __init__(self, dendrites, membrane, axon, refractory_period=1.0, mode="default"):
-        self.refractory_period = refractory_period  # Refractory period after a spike (in cycles)
-        self.refractory_time_remaining = 0  # Time left in refractory period
-        self.dendrites = dendrites # A list of dendrites
+        """Initializes Core with dendrites, membrane, axon and optional parameters."""
+
+        self.dendrites = dendrites
         self.membrane = membrane
         self.axon = axon
-        self.mode = mode # default mode is just a normal work, "train" mode is for learning
-
+        self.refractory_period = refractory_period
+        self.refractory_time_remaining = 0  
+        self.mode = mode 
 
     def step(self):
+        """Performs a single operation cycle on the neuron's core."""
 
-        # TODO: set input to dendrites from axon's synapses
-
-        total_input = sum(dendrite.step( mode = self.mode) for dendrite in self.dendrites)   # Accumulate all the dendrite signals
-        refractory = self.refractory_time_remaining > 0                     # Check if the neuron is in refractory period
-        self.membrane.step(total_input, refractory)                         # Update the membrane potential
-        if self.membrane.spike:                                             # If the neuron spiked...
-            self.refractory_time_remaining = self.refractory_period         # Enter the refractory period
+        # Accumulate all the dendrite signals
+        total_input = sum(dendrite.step(mode=self.mode) for dendrite in self.dendrites)   
+        
+        # Check if the neuron is in refractory period
+        refractory = self.refractory_time_remaining > 0                     
+        
+        # Update the membrane potential
+        self.membrane.step(total_input, refractory)                         
+        
+        if self.membrane.spike:  
+            # If the neuron spiked, enter the refractory period
+            self.refractory_time_remaining = self.refractory_period         
         else:
-            self.refractory_time_remaining = max(0, self.refractory_time_remaining - 1)  # Decrease the time remaining in the refractory period
-        self.axon.step(self.membrane)              # Provide the membrane potential and spike to the axon
+            # Decrease the time remaining in the refractory period
+            self.refractory_time_remaining = max(0, self.refractory_time_remaining - 1)  
+        
+        # Provide the membrane potential and spike to the axon
+        self.axon.step(self.membrane)
