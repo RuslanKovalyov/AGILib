@@ -9,7 +9,7 @@ class ConnectorSnackSnn:
         self.width = width
         self.height = height
         # data to/from the neural network
-        self.go_to = "STOP"
+        self.go_to = "UP" #STOP
         self.game_state = {
             "field": [[0 for _ in range(width)] for _ in range(height)], 
             "direction": None,
@@ -33,6 +33,16 @@ class ConnectorSnackSnn:
             self.go_to = "Down"
         elif data == [0,0,0,1]:
             self.go_to = "Left"
+        
+        elif data == [1,1,0,0]:
+            self.go_to = "UpRight"
+        elif data == [0,1,1,0]:
+            self.go_to = "DownRight"
+        elif data == [0,0,1,1]:
+            self.go_to = "DownLeft"
+        elif data == [1,0,0,1]:
+            self.go_to = "UpLeft"
+            
         
 
     def train(self, error):

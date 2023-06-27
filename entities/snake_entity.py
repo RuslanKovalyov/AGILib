@@ -6,8 +6,8 @@ from connectors import ConnectorSnackSnn
 
 
 # Set the dimensions of the game window
-width = 600
-height = 600
+width = 300
+height = 300
 
 data_width = 800
 data_height = 800
@@ -94,6 +94,7 @@ def game_loop():
     snake_head = []
 
     points = 0
+    distance_to_food = abs(foodx - x1) + abs(foody - y1)
     while not game_over:
         while game_end:
             # # Display game over message
@@ -155,6 +156,20 @@ def game_loop():
             elif go_to == 'Down':
                 y1_change = snake_block_size
                 x1_change = 0
+            
+            elif go_to == 'UpRight':
+                y1_change = -snake_block_size
+                x1_change = snake_block_size
+            elif go_to == 'DownRight':
+                y1_change = snake_block_size
+                x1_change = snake_block_size
+            elif go_to == 'DownLeft':
+                y1_change = snake_block_size
+                x1_change = -snake_block_size
+            elif go_to == 'UpLeft':
+                y1_change = -snake_block_size
+                x1_change = -snake_block_size
+                
         else:
             # Handle keypresses
             for event in pygame.event.get():
@@ -213,9 +228,22 @@ def game_loop():
         if x1 == foodx and y1 == foody:
             foodx = round(random.randrange(0, width - snake_block_size) / 10.0) * 10.0
             foody = round(random.randrange(0, height - snake_block_size) / 10.0) * 10.0
-            # length_of_snake += 1
+            length_of_snake += 1
             points += 1
             connector.train(error=5)
+        
+
+
+
+        #check if snake is moving further away from food
+        if distance_to_food < abs(foodx - x1) + abs(foody - y1):
+            connector.train(error=-0.01)
+            # print("snake is moving further away from food")
+        elif distance_to_food > abs(foodx - x1) + abs(foody - y1):
+            connector.train(error=0.001)
+            # print("snake is moving closer to food")
+            
+        distance_to_food = abs(foodx - x1) + abs(foody - y1)
 
         
         # Set game state
