@@ -436,7 +436,7 @@ def back_propagation_simple_cycle_by_cycle_train():
                 neuron.step()
 
                     
-        errors = []  # You would calculate the appropriate errors here
+        errors = []  # Calculate the appropriate errors here
         for i, neuron in enumerate(layers[-1]):
             # neuron.backward_propagate(errors[i])
             if neuron.core.membrane.spike:
