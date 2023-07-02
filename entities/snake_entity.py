@@ -6,11 +6,11 @@ from connectors import ConnectorSnackSnn
 
 
 # Set the dimensions of the game window
-width = 300
-height = 300
+width = 40
+height = 40
 
-data_width = 800
-data_height = 800
+data_width = 700
+data_height = 500
 # Define the colors to be used:
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -41,7 +41,7 @@ y_change = 0
 clock = pygame.time.Clock()
 
 font_style = pygame.font.SysFont(None, 30)
-score_font = pygame.font.SysFont(None, 30)
+score_font = pygame.font.SysFont(None, 50)
 game_data = pygame.font.SysFont(None, 20)
 game_distance = pygame.font.SysFont(None, 20)
 game_map = pygame.font.SysFont(None, 10)
@@ -51,9 +51,38 @@ def our_snake(snake_block_size, snake_list):
     for x in snake_list:
         pygame.draw.rect(window, GREEN, [x[0], x[1], snake_block_size, snake_block_size])
 
+#print meadl score of last 30 games
+last_score = 0
+score = 0
+rekord = 0
+game_count = 0
 def your_score(points):
-    value = score_font.render("Score: " + str(points), True, WHITE)
+    # value = score_font.render("Score: " + str(points), True, WHITE)
+    # window.blit(value, [0, 0+height])
+    global score
+    global last_score
+    global game_count
+    global rekord
+    score += points
+    game_count += 1
+    if points > rekord:
+            rekord = points
+    if game_count == 50:
+        score = round(score/50)
+        last_score = score
+        score = 0
+        game_count = 0
+    value = score_font.render("Medal Score by last 50 games: " + str(last_score), True, WHITE)
     window.blit(value, [0, 0+height])
+    # show rekord
+    value = score_font.render("Rekord: " + str(rekord), True, WHITE)
+    window.blit(value, [0, 30+height])
+    # show actual score
+    value = score_font.render("Actual: " + str(points), True, WHITE)
+    window.blit(value, [0, 60+height])
+
+
+
 
 def render_data(game_state):
     data_window.blit(game_data.render("direction: " + str(game_state["direction"]) + ' | ' +
@@ -216,7 +245,7 @@ def game_loop():
         # Check if the snake hits itself
         for x in snake_list[:-1]:
             if x == snake_head:
-                connector.train(error=-0.01)
+                connector.train(error=-5)
                 game_end = True
 
         # Update the snake and food display
@@ -230,7 +259,7 @@ def game_loop():
             foody = round(random.randrange(0, height - snake_block_size) / 10.0) * 10.0
             length_of_snake += 1
             points += 1
-            connector.train(error=5)
+            connector.train(error=20)
         
 
 
@@ -249,6 +278,7 @@ def game_loop():
         # Set game state
         field = [[' ' for _ in range(width)] for _ in range(height)]
         field[int(foody / snake_block_size)][int(foodx / snake_block_size)] = 1  # food
+
         for i, (x, y) in enumerate(snake_list):
             if i == len(snake_list) - 1:  # this is the head of the snake
                 field[int(y / snake_block_size)][int(x / snake_block_size)] = '3'  # snake head

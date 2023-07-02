@@ -54,7 +54,7 @@ class Neuron:
                         dendrite.post_synapse.parent_neuron.backward_propagate(error=error + dendrite.weight)
                     else:
                         # opposite sign of error with random coefficient
-                        dendrite.post_synapse.parent_neuron.backward_propagate(error=-(error + dendrite.weight * random.uniform(0.5, 2)))
+                        dendrite.post_synapse.parent_neuron.backward_propagate(error=-(error + dendrite.weight * random.uniform(0.7, 1.3)))
 
     def cumulative_learning(self):
         """

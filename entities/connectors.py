@@ -1,8 +1,8 @@
 import os
 import ai
 
-brine = ai.Brine(input_size=4, hidden_size=[36,], output_size=4)
-
+brine = ai.Brine(input_size=(40*40*2*0)+4+8+1, hidden_size=[8,8,8,8], output_size=4)
+print(len(brine.sensors))
 class ConnectorSnackSnn:    
     def __init__(self, width, height):
         # Set the dimensions of the field
@@ -72,23 +72,98 @@ class ConnectorSnackSnn:
         self.game_state["food_distance"] = food_distance
     
         # transfer data to snn
+        data = []
+
+        # food direction
         if self.game_state["food_direction"] == "Up":
-            brine.input(tuple([1, 0, 0, 0]))
+            data = [1, 0, 0, 0]
         elif self.game_state["food_direction"] == "Right":
-            brine.input(tuple([0, 1, 0, 0]))
+            data = [0, 1, 0, 0]
         elif self.game_state["food_direction"] == "Down":
-            brine.input(tuple([0, 0, 1, 0]))
+            data = [0, 0, 1, 0]
         elif self.game_state["food_direction"] == "Left":
-            brine.input(tuple([0, 0, 0, 1]))
+            data = [0, 0, 0, 1]
             
         elif self.game_state["food_direction"] == "UpRight":
-            brine.input(tuple([1, 1, 0, 0]))
+            data = [1, 1, 0, 0]
         elif self.game_state["food_direction"] == "DownRight":
-            brine.input(tuple([0, 1, 1, 0]))
+            data = [0, 1, 1, 0]
         elif self.game_state["food_direction"] == "DownLeft":
-            brine.input(tuple([0, 0, 1, 1]))
+            data = [0, 0, 1, 1]
         elif self.game_state["food_direction"] == "UpLeft":
-            brine.input(tuple([1, 0, 0, 1]))
+            data = [1, 0, 0, 1]
+        else:
+            data = [0, 0, 0, 0] # STOP
+        
+        # food distance sum (x+y)
+        distance = self.game_state["food_distance"]["x"] + self.game_state["food_distance"]["y"]
+        if distance > (self.width + self.height) * 3/4:
+            data += [0, 0, 0, 1]
+        elif distance > (self.width + self.height) * 1/2:
+            data += [0, 0, 1, 0]
+        elif distance > (self.width + self.height) * 1/4:
+            data += [0, 1, 0, 0]
+        else:
+            data += [1, 0, 0, 0]
+
+
+        # direction
+        if self.game_state["direction"] == "Up":
+            data += [1, 0, 0, 0]
+        elif self.game_state["direction"] == "Right":
+            data += [0, 1, 0, 0]
+        elif self.game_state["direction"] == "Down":
+            data += [0, 0, 1, 0]
+        elif self.game_state["direction"] == "Left":
+            data += [0, 0, 0, 1]
+        else:
+            data += [0, 0, 0, 0] # STOP
+        
+        # # head in field
+        # for row in self.game_state["field"]:
+        #     for cell in row:
+        #         if cell == '3':
+        #             data.append(1)
+        #         else:
+        #             data.append(0)
+        
+        # # body in field
+        # for row in self.game_state["field"]:
+        #     for cell in row:
+        #         if cell == '2':
+        #             data.append(1)
+        #         else:
+        #             data.append(0)
+        
+        # if next step collides with boundary
+        boundary_is_next = 0
+        if self.game_state["direction"] == "Up":
+            # check if head ('3') is in top row
+            if '3' in self.game_state["field"][0]:
+                print("UP collision")
+                boundary_is_next = 1
+        elif self.game_state["direction"] == "Right":
+            # check if head ('3') is in right column
+            if '3' in [row[-1] for row in self.game_state["field"]]:
+                print("RIGHT collision")
+                boundary_is_next = 1
+        elif self.game_state["direction"] == "Down":
+            # check if head ('3') is in bottom row
+            if '3' in self.game_state["field"][-1]:
+                print("DOWN collision")
+                boundary_is_next = 1
+        elif self.game_state["direction"] == "Left":
+            # check if head ('3') is in left column
+            if '3' in [row[0] for row in self.game_state["field"]]:
+                print("LEFT collision")
+                boundary_is_next = 1
+                
+        data.append(boundary_is_next)        
+        
+        
+        brine.input(tuple(data))
+        
+   
     
     # Neural network methods
     

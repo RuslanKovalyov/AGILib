@@ -30,7 +30,7 @@ class Brine:
             # Create neurons for the layer
             layer = [
                 Neuron(core=Core(
-                    dendrites=[Dendrite(weight=random.uniform(1, 20))], 
+                    dendrites=[Dendrite(weight=random.uniform(-20, 20))], 
                     membrane=Membrane(threshold=20.0, reset_ratio=0.0, leakage=1),
                     axon=Axon([Synapse(transmitter_type='simple-signal-mediator', initial_level=100, regenerate_rate=1)]),
                     refractory_period=0, mode='cycle-train')) for _ in range(num_neurons)
@@ -88,4 +88,16 @@ class Brine:
                     neuron.backward_propagate(error = error)
             else:
                 neuron.backward_propagate(error = -error)
+
+        # more errors stimulations for all layers to fasten the training ( not sure if it is correct )
+        for i in range(len(self.layers)-1, -1, -1):
+            layer = self.layers[i]
+            for j in range(len(layer)):
+                neuron = layer[j]
+                if neuron.core.membrane.spike:
+                    neuron.backward_propagate(error = error)
+                else:
+                    neuron.backward_propagate(error = -error)
+
+                
 
