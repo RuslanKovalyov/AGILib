@@ -89,15 +89,15 @@ class Brine:
             else:
                 neuron.backward_propagate(error = -error)
 
-        # more errors stimulations for all layers to fasten the training ( not sure if it is correct )
-        for i in range(len(self.layers)-1, -1, -1):
-            layer = self.layers[i]
-            for j in range(len(layer)):
-                neuron = layer[j]
-                if neuron.core.membrane.spike:
-                    neuron.backward_propagate(error = error)
-                else:
-                    neuron.backward_propagate(error = -error)
+        # # more errors stimulations for all layers to fasten the training ( not sure if it is correct )
+        # for i in range(len(self.layers)-1, -1, -1):
+        #     layer = self.layers[i]
+        #     for j in range(len(layer)):
+        #         neuron = layer[j]
+        #         if neuron.core.membrane.spike:
+        #             neuron.backward_propagate(error = error)
+        #         else:
+        #             neuron.backward_propagate(error = -error)
 
                 
 

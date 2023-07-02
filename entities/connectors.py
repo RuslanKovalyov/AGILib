@@ -1,7 +1,7 @@
 import os
 import ai
 
-brine = ai.Brine(input_size=(40*40*2*0)+4+8+1, hidden_size=[8,8,8,8], output_size=4)
+brine = ai.Brine(input_size=(40*40*2)+4+8+1, hidden_size=[4,], output_size=4)
 print(len(brine.sensors))
 class ConnectorSnackSnn:    
     def __init__(self, width, height):
@@ -119,21 +119,21 @@ class ConnectorSnackSnn:
         else:
             data += [0, 0, 0, 0] # STOP
         
-        # # head in field
-        # for row in self.game_state["field"]:
-        #     for cell in row:
-        #         if cell == '3':
-        #             data.append(1)
-        #         else:
-        #             data.append(0)
+        # head in field
+        for row in self.game_state["field"]:
+            for cell in row:
+                if cell == '3':
+                    data.append(1)
+                else:
+                    data.append(0)
         
-        # # body in field
-        # for row in self.game_state["field"]:
-        #     for cell in row:
-        #         if cell == '2':
-        #             data.append(1)
-        #         else:
-        #             data.append(0)
+        # body in field
+        for row in self.game_state["field"]:
+            for cell in row:
+                if cell == '2':
+                    data.append(1)
+                else:
+                    data.append(0)
         
         # if next step collides with boundary
         boundary_is_next = 0
