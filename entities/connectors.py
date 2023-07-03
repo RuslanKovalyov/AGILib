@@ -1,7 +1,7 @@
 import os
 import ai
 
-brine = ai.Brine(input_size=(40*40*2)+4+8+1, hidden_size=[4,], output_size=4)
+brine = ai.Brine(input_size=(8*8)+4+8+1, hidden_size=[80,], output_size=4)
 print(len(brine.sensors))
 class ConnectorSnackSnn:    
     def __init__(self, width, height):

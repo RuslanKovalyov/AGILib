@@ -6,8 +6,8 @@ from connectors import ConnectorSnackSnn
 
 
 # Set the dimensions of the game window
-width = 40
-height = 40
+width = 80
+height = 80
 
 data_width = 700
 data_height = 500
