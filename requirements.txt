@@ -3,5 +3,3 @@
 # Just run the script 'pip3.11 install -r requirements.txt'.
 
 pygame
-matplotlib
-threading
