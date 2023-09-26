@@ -385,7 +385,7 @@ def back_propagation_simple_cycle_by_cycle_train():
     num_sensors = 4
     sensors = [SensorNeuron() for _ in range(num_sensors)]
 
-    # Define network topology
+    # Define network topology (first layer neurons will be connected to the sensors)
     topology = [32, 32, 4]
 
     # Initialize empty list to hold all layers of neurons
