@@ -1,0 +1,5 @@
+# python3.11
+# venv not required,this is a prototyping neuro-models project and will not be use complex dependencies and modules. Pure python only.
+# Just run the script 'pip3.11 install -r requirements.txt'.
+
+pygame
