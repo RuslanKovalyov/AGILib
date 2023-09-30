@@ -516,7 +516,7 @@ def our_snake(snake_block_size, snake_list):
 #print meadl score of last 30 games
 last_score = 0
 score = 0
-rekord = 0
+record = 0
 game_count = 0
 
 def your_score(points):
@@ -525,32 +525,32 @@ def your_score(points):
     global score
     global last_score
     global game_count
-    global rekord
+    global record
     score += points
     game_count += 1
-    if points > rekord:
-            rekord = points
+    if points > record:
+            record = points
     if game_count == 50:
         score = round(score/50)
         last_score = score
         score = 0
         game_count = 0
-    value = score_font.render("Medal Score by last 50 games: " + str(last_score), True, WHITE)
+    value = score_font.render("Middle Score by last 50 games: " + str(last_score), True, WHITE)
     window.blit(value, [0, 0+height])
-    # show rekord
-    value = score_font.render("Rekord: " + str(rekord), True, WHITE)
+    # show record
+    value = score_font.render("Record: " + str(record), True, WHITE)
     window.blit(value, [0, 30+height])
     # show actual score
     value = score_font.render("Actual: " + str(points), True, WHITE)
     window.blit(value, [0, 60+height])
 
 def render_data(game_state):
-    data_window.blit(game_data.render("direction: " + str(game_state["direction"]) + ' | ' +
-                                 "food_direction: " + str(game_state["food_direction"]) + ' | ', True, WHITE),
-                [30, 30+height])
+    data_window.blit(game_data.render("direction:            "  + str(game_state["direction"     ]), True, WHITE),[120, 200+height])
+    data_window.blit(game_data.render("food_direction:   "      + str(game_state["food_direction"]), True, WHITE),[120, 225+height])
+    
 def render_distance(game_state):
-    data_window.blit(game_distance.render("food_distance: " + str(game_state["food_distance"]), True, WHITE),
-                [30, 50+height])
+    data_window.blit(game_distance.render("food_distance:    "  + str(game_state["food_distance" ]), True, WHITE),[120, 250+height])
+    
 def render_map(game_state):
     field = game_state["field"]
     for i, row in enumerate(field):
@@ -726,7 +726,7 @@ def game_loop():
         #check if snake is moving further away from food
         if distance_to_food < abs(foodx - x1) + abs(foody - y1):
             connector.train(error=-0.01)
-            # print("snake is moving further away from food")
+            print("snake is moving further away from food")
         elif distance_to_food > abs(foodx - x1) + abs(foody - y1):
             connector.train(error=0.001)
             # print("snake is moving closer to food")
@@ -749,10 +749,10 @@ def game_loop():
         food_distance = {"x": abs(foodx - x1), "y": abs(foody - y1)}
 
 
-        # # draw the data
-        # render_data(connector.get_game_state())
-        # render_distance(connector.get_game_state())
-        # render_map(connector.get_game_state())
+        # draw the data
+        render_data(connector.get_game_state())
+        render_distance(connector.get_game_state())
+        render_map(connector.get_game_state())
 
         clock.tick(snake_speed)
         pygame.display.update()

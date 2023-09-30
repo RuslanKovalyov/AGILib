@@ -54,7 +54,7 @@ def our_snake(snake_block_size, snake_list):
 #print meadl score of last 30 games
 last_score = 0
 score = 0
-rekord = 0
+record = 0
 game_count = 0
 def your_score(points):
     # value = score_font.render("Score: " + str(points), True, WHITE)
@@ -62,20 +62,20 @@ def your_score(points):
     global score
     global last_score
     global game_count
-    global rekord
+    global record
     score += points
     game_count += 1
-    if points > rekord:
-            rekord = points
+    if points > record:
+            record = points
     if game_count == 50:
         score = round(score/50)
         last_score = score
         score = 0
         game_count = 0
-    value = score_font.render("Medal Score by last 50 games: " + str(last_score), True, WHITE)
+    value = score_font.render("Middle Score by last 50 games: " + str(last_score), True, WHITE)
     window.blit(value, [0, 0+height])
-    # show rekord
-    value = score_font.render("Rekord: " + str(rekord), True, WHITE)
+    # show record
+    value = score_font.render("Record: " + str(record), True, WHITE)
     window.blit(value, [0, 30+height])
     # show actual score
     value = score_font.render("Actual: " + str(points), True, WHITE)
