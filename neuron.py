@@ -690,10 +690,17 @@ class Neuron:
         Aimed at testing the neuron class in the context of the network, environment, other classes, features, efficiency measurements, etc.
         """
         pass
-        
+
+    class Benchmark:
+        """
+        Speed and efficiency benchmarking of neuron class, isolated methods of classes, in network dynamics, etc.
+        pass
+        """
+        pass
+
     class Ploting:
         """
-        Dinamic ploting of neuron and/or network activity. ex: colored membrane potintials in layers, frequency of use of signal routes, spike patterns, overloaded sections of network (potential bottlenecks which can be optimized or expanded by adding new neurons), etc.
+        Dinamic ploting of neuron and/or network activity. ex: Heatmaps of membrane potintials, signal routes frequency, spike patterns, overloaded sections of network (potential bottlenecks which can be optimized or expanded by adding new neurons), etc.
         """
         pass
 
