@@ -269,7 +269,7 @@ class Neuron:
         """
         Tests of neuron functionality and consistency.
         Since Python is used to prototype the class and concepts, internal tests are used to simplify it.
-        The class will be rewritten and optimized in C++, use parallel processing, including clustering, etc.
+        The Neuron class will be rewritten and optimized in C++, use parallel processing, including clustering, etc.
         """
         def print_test_result(test_name=None, test_passed=None):
             """
@@ -685,13 +685,31 @@ class Neuron:
                 Neuron.Test.print_test_result(test_name="PROCESS_ACTIVATION", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
 
+    class Simulation:
+        """
+        Aimed at testing the neuron class in the context of the network, environment, other classes, features, efficiency measurements, etc.
+        """
+        pass
+        
+    class Ploting:
+        """
+        Dinamic ploting of neuron and/or network activity. ex: colored membrane potintials in layers, frequency of use of signal routes, spike patterns, overloaded sections of network (potential bottlenecks which can be optimized or expanded by adding new neurons), etc.
+        """
+        pass
 
 # Run the test
-Neuron.Test.connect()
-Neuron.Test.set_properties_test()
-Neuron.Test.disconnect()
-Neuron.Test.set_weight_and_ttl_test()
-Neuron.Test.get_weight_and_ttl()
-Neuron.Test.get_output_history()
-Neuron.Test.process_input()
-Neuron.Test.process_activation()
+def run_test():
+    """
+    Run test for Neuron class.
+    """
+    Neuron.Test.connect()
+    Neuron.Test.set_properties_test()
+    Neuron.Test.disconnect()
+    Neuron.Test.set_weight_and_ttl_test()
+    Neuron.Test.get_weight_and_ttl()
+    Neuron.Test.get_output_history()
+    Neuron.Test.process_input()
+    Neuron.Test.process_activation()
+
+if __name__ == "__main__":
+    run_test()
