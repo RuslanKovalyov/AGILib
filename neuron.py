@@ -474,9 +474,12 @@ class Neuron:
 
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="SET_PROPERTIES", test_passed=True)
+                passed = True
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="SET_PROPERTIES", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
+                passed = False
+            return passed
 
         @staticmethod
         def connect():
@@ -510,9 +513,12 @@ class Neuron:
                 
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="CONNECT", test_passed=True)
+                passed = True
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="CONNECT", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
+                passed = False
+            return passed
 
         @staticmethod
         def disconnect():
@@ -558,9 +564,12 @@ class Neuron:
                 
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="DISCONNECT", test_passed=True)
+                passed = True
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="DISCONNECT", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
+                passed = False
+            return passed
 
         @staticmethod
         def set_weight_and_ttl_test():
@@ -609,10 +618,13 @@ class Neuron:
                     
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="SET_WEIGHT_AND_TTL", test_passed=True)
+                passed = True
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="SET_WEIGHT_AND_TTL", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
-            
+                passed = False
+            return passed
+
         @staticmethod
         def get_weight_and_ttl():
             """
@@ -652,10 +664,13 @@ class Neuron:
                     
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="GET_WEIGHT_AND_TTL", test_passed=True)
+                passed = True
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="GET_WEIGHT_AND_TTL", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
-        
+                passed = False
+            return passed
+
         @staticmethod
         def set_s_stab():
             """
@@ -702,10 +717,12 @@ class Neuron:
                     
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="SET_S_STAB", test_passed=True)
+                passed = True
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="SET_S_STAB", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
-
+                passed = False
+            return passed
         @staticmethod
         def get_s_stab():
             """
@@ -742,9 +759,12 @@ class Neuron:
                     
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="GET_S_STAB", test_passed=True)
+                passed = True
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="GET_S_STAB", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
+                passed = False
+            return passed
 
         @staticmethod
         def add_s_stab():
@@ -856,10 +876,13 @@ class Neuron:
                     
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="ADD_S_STAB", test_passed=True)
+                passed = True
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="ADD_S_STAB", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
-        
+                passed = False
+            return passed
+
         @staticmethod
         def get_output_history():
             """
@@ -886,10 +909,13 @@ class Neuron:
 
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="GET_OUTPUT_HISTORY", test_passed=True)
+                passed = True
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="GET_OUTPUT_HISTORY", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
-        
+                passed = False
+            return passed
+
         @staticmethod
         def process_input():
             """
@@ -932,9 +958,12 @@ class Neuron:
 
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="PROCESS_INPUT", test_passed=True)
+                passed = True
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="PROCESS_INPUT", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
+                passed = False
+            return passed
 
         @staticmethod
         def process_activation():
@@ -1004,9 +1033,12 @@ class Neuron:
 
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="PROCESS_ACTIVATION", test_passed=True)
+                passed = True
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="PROCESS_ACTIVATION", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
+                passed = False
+            return passed
 
         @staticmethod
         def reinforcement():
@@ -1102,9 +1134,40 @@ class Neuron:
 
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="reinforcement", test_passed=True)
+                passed = True
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="reinforcement", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
+                passed = False
+            return passed
+
+        # Run all tests
+        @staticmethod
+        def run_all_tests():
+            """
+            Run tests for Neuron class.
+            """
+            all_passed = True
+            if not Neuron.Test.connect(): all_passed = False
+            if not Neuron.Test.set_properties_test(): all_passed = False
+            if not Neuron.Test.disconnect(): all_passed = False
+            if not Neuron.Test.set_weight_and_ttl_test(): all_passed = False
+            if not Neuron.Test.get_weight_and_ttl(): all_passed = False
+            if not Neuron.Test.set_s_stab(): all_passed = False
+            if not Neuron.Test.get_s_stab(): all_passed = False
+            if not Neuron.Test.add_s_stab(): all_passed = False
+            if not Neuron.Test.get_output_history(): all_passed = False
+            if not Neuron.Test.process_input(): all_passed = False
+            if not Neuron.Test.process_activation(): all_passed = False
+            if not Neuron.Test.reinforcement(): all_passed = False
+
+            GREEN = '\033[92m'
+            RED = '\033[91m'
+            RESET = '\033[0m'
+            if all_passed:
+                print(f"{GREEN}---> All tests passed <---{RESET}")
+            else:
+                print(f"{RED}---> Some tests failed <---{RESET}")
 
     class Simulation:
         """
@@ -1125,24 +1188,6 @@ class Neuron:
         """
         pass
 
-# Run the test
-def run_test():
-    """
-    Run test for Neuron class.
-    """
-    Neuron.Test.connect()
-    Neuron.Test.set_properties_test()
-    Neuron.Test.disconnect()
-    Neuron.Test.set_weight_and_ttl_test()
-    Neuron.Test.get_weight_and_ttl()
-    Neuron.Test.set_s_stab()
-    Neuron.Test.get_s_stab()
-    Neuron.Test.add_s_stab()
-    Neuron.Test.get_output_history()
-    Neuron.Test.process_input()
-    Neuron.Test.process_activation()
-    Neuron.Test.reinforcement()
-
 if __name__ == "__main__":
-    run_test()
-
+    # Run the test
+    Neuron.Test.run_all_tests()
