@@ -330,6 +330,19 @@ class Neuron:
         
         # TODO: Assative learning with long associations of output history (several cycles)
 
+    def cooperation(self):
+        """
+        Cooperation mechanism:
+        In back3P, penalized neurons promote engagement among less-active neighbors, urging them to partake in the learning process. This mechanism distributes the error, fostering a cooperative environment.
+        The aim is to optimize both individual neuron performance and overall network collaboration, tapping into the potential of underutilized neurons for a more holistic learning approach.
+        """
+        # NOT IMPLEMENTED YET. TODO: Cooperation mechanism logic
+
+        # use random wheigts for not involved neurons in learning process to cooperate them.
+        # use s_stab to increase involvement of neurons which long and stable working in other parts of network.
+        # look optimisation opportunity by cutting off not involved neurons with high s_stab as they are already stable and not involved in local learning process.
+        pass
+
     def recursive_prop(self):
         """
         Recursive propagation ensures error propagation taking into account the local requirements of specific neurons.
