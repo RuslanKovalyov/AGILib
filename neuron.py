@@ -3,9 +3,11 @@ import random
 class Neuron:
     def __init__(self):
         # Connection properties
-        self.connections = [] # list of dicts [ {'neuron': neuron, 'weight': weight, 'ttl': ttl}, ...]
+        self.connections = [] # list of dicts [ {'neuron': neuron, 'weight': weight, 'ttl': ttl, 's_stab': s_stab}, ...]
         # "ttl" is "time of transmitter leakage", or Time-Transmitter-Live (TTL) mechanism for synaptic weights, mimics the idea of short-term plasticity in biology.
+        # "s_stab" connection (synapse) stability gives for frequently used channels greater resistance to learning. (protection of long experience) min=1, max=100
         # impruve performance by changing list of dicts to numpy arrays
+
         self.min_max_weight = (-127, 127)
         self.min_max_ttl = (0, 255)
 
@@ -17,7 +19,7 @@ class Neuron:
         self.threshold = 100 # action potential threshold
         self.reset_ratio = {'val': 0.05, 'min': 0, 'max': 1 } # ratio of threshold to reset to. reset = rest + (reset_ratio * (threshold - rest)).
         self.v_m = 0 # current membrane potential
-        self.leakage = {'val': 0.5, 'min': 0, 'max': 100} # leakage of membrane potential per tick in percent (%) of current v_m
+        self.leakage = {'val': 0.1, 'min': 0, 'max': 100} # leakage of membrane potential per tick in percent (%) of current v_m
         self.spike = False
         self.sensitivity = {'val': 100, 'min': 0, 'max': 200} # sensitivity of neuron - total input moultiplier. Normally is must be 100 (100%)
         self.sensitivity_normal = 100 # normal sensitivity of neuron in percent (%)
@@ -37,50 +39,58 @@ class Neuron:
         self.neurotransmitter_level = 100 # current level, may have effect on output, firing pattern might change. Output is still binary and active but neurotransmitter not released in case of zero level
         self.neurotransmitter_regeneration_rate = {'val': 1, 'min': 0, 'max': self.neurotransmitter_level} # rate of neurotransmitter regeneration with no threshold per tick
         self.neurotransmitter_depletion_rate = {'val': 10, 'min': 0, 'max': self.neurotransmitter_level} # rate of neurotransmitter depletion per threshold
+
+        # constants
+        self.rounding = 4 # rounding of float numbers like v_m, weight, etc.
         
-    def set_properties(self, rest=0, threshold=100, reset_ratio=0.05, leakage=0.1, sensitivity=100, sensitivity_adjust_rate=-10, sensitivity_restore_rate=1, refractory_period=1):
+    def set_properties(self, rest=None, threshold=None, reset_ratio=None, leakage=None, sensitivity=None, sensitivity_adjust_rate=None, sensitivity_restore_rate=None, refractory_period=None):
         """
         Set properties of neuron with boundary checks.
         """
-
-        self.rest = rest
-        self.threshold = threshold
+        if rest is not None:
+            self.rest = rest
+        if threshold is not None:
+            self.threshold = threshold
         
         # Boundary checks for reset_ratio
-        if self.reset_ratio['min'] <= reset_ratio <= self.reset_ratio['max']:
-            self.reset_ratio['val'] = reset_ratio
-        else:
-            self.reset_ratio['val'] = 0.05
+        if reset_ratio is not None:
+            if self.reset_ratio['min'] <= reset_ratio <= self.reset_ratio['max']:
+                self.reset_ratio['val'] = reset_ratio
             
         # Boundary checks for leakage
-        if self.leakage['min'] <= leakage <= self.leakage['max']:
-            self.leakage['val'] = leakage
-        else:
-            self.leakage['val'] = 0.1
-        
+        if leakage is not None:
+            if self.leakage['min'] <= leakage <= self.leakage['max']:
+                self.leakage['val'] = leakage
+            else:
+                self.leakage['val'] = 0.1
+            
         # Boundary checks for sensitivity
-        if self.sensitivity['min'] <= sensitivity <= self.sensitivity['max']:
-            self.sensitivity['val'] = sensitivity
-        else:
-            self.sensitivity['val'] = 100
-        
+        if sensitivity is not None:
+            if self.sensitivity['min'] <= sensitivity <= self.sensitivity['max']:
+                self.sensitivity['val'] = sensitivity
+            else:
+                self.sensitivity['val'] = 100
+            
         # Boundary checks for sensitivity_adjust_rate
-        if self.sensitivity_adjust_rate['min'] <= sensitivity_adjust_rate <= self.sensitivity_adjust_rate['max']:
-            self.sensitivity_adjust_rate['val'] = sensitivity_adjust_rate
-        else:
-            self.sensitivity_adjust_rate['val'] = -10
-        
+        if sensitivity_adjust_rate is not None:
+            if self.sensitivity_adjust_rate['min'] <= sensitivity_adjust_rate <= self.sensitivity_adjust_rate['max']:
+                self.sensitivity_adjust_rate['val'] = sensitivity_adjust_rate
+            else:
+                self.sensitivity_adjust_rate['val'] = -10
+            
         # Boundary checks for sensitivity_restore_rate
-        if self.sensitivity_restore_rate['min'] <= sensitivity_restore_rate <= self.sensitivity_restore_rate['max']:
-            self.sensitivity_restore_rate['val'] = sensitivity_restore_rate
-        else:
-            self.sensitivity_restore_rate['val'] = 1
-        
+        if sensitivity_restore_rate is not None:
+            if self.sensitivity_restore_rate['min'] <= sensitivity_restore_rate <= self.sensitivity_restore_rate['max']:
+                self.sensitivity_restore_rate['val'] = sensitivity_restore_rate
+            else:
+                self.sensitivity_restore_rate['val'] = 1
+            
         # Boundary checks for refractory_period
-        if self.refractory_period['min'] <= refractory_period <= self.refractory_period['max']:
-            self.refractory_period['val'] = refractory_period
-        else:
-            self.refractory_period['val'] = 1
+        if refractory_period is not None:
+            if self.refractory_period['min'] <= refractory_period <= self.refractory_period['max']:
+                self.refractory_period['val'] = refractory_period
+            else:
+                self.refractory_period['val'] = 1
 
     ''' |||CONCEPT STAGE|||
 
@@ -108,13 +118,13 @@ class Neuron:
     '''
 
     # Connection methods - one to many connections (dendritic).
-    def connect(self, other_neuron, weight=None, ttl=0):
+    def connect(self, other_neuron, weight=None, ttl=0, s_stab=1): # s_stab cant be 0! (division by zero error)
         """
         Connect to other neuron.
         """
         if weight is None:
             weight = random.uniform(-50, 50)  
-        self.connections.append({'neuron': other_neuron, 'weight': weight, 'ttl': ttl})
+        self.connections.append({'neuron': other_neuron, 'weight': weight, 'ttl': ttl, 's_stab': s_stab})
 
         # TODO: dendrite growth analogy to emulate neuroplasticity of network.
     
@@ -149,6 +159,49 @@ class Neuron:
             if connection['neuron'] == other_neuron:
                 return connection['weight'], connection['ttl']
         return None, None
+    
+    def add_weight(self, target_neuron, value=None):
+        """
+        Add weight of connection to target neuron.
+        """
+        for connection in self.connections:
+            if connection['neuron'] == target_neuron:
+                if value is not None:
+                    new_weight = round(connection['weight'] + value, self.rounding)
+                    connection['weight'] = min(self.min_max_weight[1], max(self.min_max_weight[0], new_weight)) # boundary checks
+                break
+
+    def set_s_stab(self, target_neuron, s_stab=None):
+        """
+        Set s_stab of connection to target neuron.
+        """
+        for connection in self.connections:
+            if connection['neuron'] == target_neuron:
+                if s_stab is not None:
+                    connection['s_stab'] = s_stab
+                break
+    
+    def get_s_stab(self, other_neuron):
+        """
+        Get s_stab of connection to other neuron.
+        """
+        for connection in self.connections:
+            if connection['neuron'] == other_neuron:
+                return connection['s_stab']
+        return None
+
+    def add_s_stab(self, target_neuron, positive=True):
+        """
+        Add s_stab of connection to target neuron in negative geometric progression.
+        """
+        for connection in self.connections:
+            if connection['neuron'] == target_neuron:
+                if positive:
+                    s = round( connection['s_stab'] + (1/((connection['s_stab']+1)*connection['s_stab'])), self.rounding) # the higher the number, the slower it increases
+                else:
+                    s = round( connection['s_stab'] - (1/((connection['s_stab']+1)*connection['s_stab'])), self.rounding) # the higher the number, the slower it decreases
+                connection['s_stab'] = min(100, max(1, s)) # boundary checks min=1, max=100
+                break
     
     def get_output_history(self):
         """
@@ -200,7 +253,7 @@ class Neuron:
 
             if self.v_m >= active_potential and self.refractory_period_counter == 0:
                 self.spike = True
-                self.v_m = round(self.rest + (self.reset_ratio['val'] * (self.threshold - self.rest)), 4)
+                self.v_m = round(self.rest + (self.reset_ratio['val'] * (self.threshold - self.rest)), self.rounding)
                 self.refractory_period_counter = self.refractory_period['val']
                 self.sensitivity['val'] += self.sensitivity_adjust_rate['val']
 
@@ -208,7 +261,7 @@ class Neuron:
                 self.spike = False
                 if self.v_m > active_potential:  # if v_m is bigger than active_potential because of refractory period, it must be decreased to threshold
                     self.v_m = active_potential
-                self.v_m = round(self.v_m * (1 - self.leakage['val']/100), 4) # leakage of membrane potential per tick in percent (%) of current v_m
+                self.v_m = round(self.v_m * (1 - self.leakage['val']/100), self.rounding) # leakage of membrane potential per tick in percent (%) of current v_m
                 self.refractory_period_counter -= 1 if self.refractory_period_counter > 0 else 0
                 if self.sensitivity['val'] != self.sensitivity_normal:
                     if self.sensitivity['val'] > self.sensitivity_normal:
@@ -245,29 +298,64 @@ class Neuron:
     
 
     # Learning methods
-    ''' Classical methods
+    def reinforcement(self, error):
+        
+        """
+        A unique version of reinforcement Learning.
+        * Encapsulates the logic for correcting its own weights and does not participate in learning at the network level.
+
+        _______________________________________________________
+        Logic:
+        if error
+        check all connections to spik
+        if self output is True  and connection's is True as increase weight with error
+        if self output is False and connection's is True as increase weight with -error
+        if error is positive(>0) increase the stability of all active connections (synapses).
+        if error is negative(<0) decrease the stability of all active connections (synapses).
+        change stability in reverse geometric progression ( s += (1/(s+1)*s) )
+        """
+ 
+        # one epoch learning without long associations of output history (one cycle only)
+        if error != 0:
+            if self.spike is False:
+                # invert error if self output is False
+                error = -error
+            for connect in self.connections:
+                if connect['neuron'].get_output() == True:
+                    self.add_weight(connect['neuron'], error)
+                    if error > 0:
+                        self.add_s_stab(connect, positive=True)
+                    else:
+                        self.add_s_stab(connect, positive=False)
+        
+        # TODO: Assative learning with long associations of output history (several cycles)
+
+    def recursive_prop(self):
+        """
+        Recursive propagation ensures error propagation taking into account the local requirements of specific neurons.
+        * Cooperation Mechanism:
+        In back3P, penalized neurons promote engagement among less-active neighbors, urging them to partake in the learning process. This mechanism distributes the error, fostering a cooperative environment.
+        The aim is to optimize both individual neuron performance and overall network collaboration, tapping into the potential of underutilized neurons for a more holistic learning approach.
+        """
+        # NOT IMPLEMENTED YET. TODO: Recursive propagation logic
+        pass
+    
     def Backprop(self):
         """
-        Backpropagation of error. Take care of TTL weights in propagation implementation.
+        Backpropagation of error. 
         """
         # NOT IMPLEMENTED YET. TODO: Backpropagation logic
+        
+        # NOTE: Take care of TTL weights in propagation implementation.
         pass
 
     def Hebbian(self):
         """
-        Hebbian Learning. 
+        Highly extended and adapted Hebbian learning with new features. Name is used for associative purposes for code readability.
         """
         # NOT IMPLEMENTED YET. TODO: Hebbian Learning logic
         pass
 
-    def Reinforcement(self):
-        """
-        Reinforcement Learning. 
-        """
-        # NOT IMPLEMENTED YET. TODO: Reinforcement Learning logic
-        pass
-    '''
-    
     def back3P(self):# Back-Propagation of Polymorphic Plasticity
         """
         Back-Propagation of Polymorphic Plasticity (back3P):
@@ -277,11 +365,12 @@ class Neuron:
         Key parallels include:
         - Propagation, which abstractly imitates the chemical communication between neurons for efficient information transmission.
         - The Hebbian principle, acting as an analogue to neurotransmitters that guide neural connection growth.
-        - Reinforcement learning, mirroring the hormonal reinforcement in biological systems, capturing the reward or penalty associated with different stimuli.
+        - reinforcement learning, mirroring the hormonal reinforcement in biological systems, capturing the reward or penalty associated with different stimuli.
 
-        & Cooperation Mechanism:
+        * Cooperation Mechanism:
         In back3P, penalized neurons promote engagement among less-active neighbors, urging them to partake in the learning process. This mechanism distributes the error, fostering a cooperative environment.
         The aim is to optimize both individual neuron performance and overall network collaboration, tapping into the potential of underutilized neurons for a more holistic learning approach.
+        Realisation of Cooperation mechanism is recursive error propagation, which ensures error propagation taking into account the local neurons behavior.
         
         * Plasticity as Neuroplasticity
         Unique to `back3P` is its flexibility in learning modalities:
@@ -566,7 +655,211 @@ class Neuron:
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="GET_WEIGHT_AND_TTL", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
+        
+        @staticmethod
+        def set_s_stab():
+            """
+            Test for the set_s_stab() method of Neuron class.
+            """
+            # Create two neurons
+            neuron1 = Neuron()
+            neuron2 = Neuron()
 
+            try:            
+                # Initial state, there should be no connections
+                assert len(neuron1.connections) == 0, "Initial state failed. Neuron1 has connections."
+                assert len(neuron2.connections) == 0, "Initial state failed. Neuron2 has connections."
+                
+                # Connect neuron2 to neuron1 with specified weight and ttl
+                weight = 0.75
+                ttl = 5
+                neuron2.connect(neuron1, weight=weight, ttl=ttl, s_stab=1)
+                
+                # Check if neuron1 is connected to neuron2
+                connected = False
+                for conn in neuron2.connections:
+                    if conn['neuron'] == neuron1:
+                        connected = True
+                        assert conn['weight'] == weight, "Connection weight is incorrect."
+                        assert conn['ttl'] == ttl, "Connection TTL is incorrect."
+                        assert conn['s_stab'] == 1, "Connection s_stab is incorrect."
+                        break
+                    
+                assert connected, "Failed to connect neuron2 to neuron1."
+                
+                # Set s_stab of connection
+                s_stab = 0.5
+                neuron2.set_s_stab(neuron1, s_stab=s_stab)
+
+                # Check if s_stab is set correctly
+                for conn in neuron2.connections:
+                    if conn['neuron'] == neuron1:
+                        assert conn['s_stab'] == s_stab, "New connection s_stab is incorrect."
+                        break
+                    else:
+                        raise AssertionError("Failed to set s_stab of connection.")
+
+                    
+                # If there are no assertion errors, the test passed
+                Neuron.Test.print_test_result(test_name="SET_S_STAB", test_passed=True)
+            except AssertionError as e:
+                Neuron.Test.print_test_result(test_name="SET_S_STAB", test_passed=False)
+                Neuron.Test.print_error_message(error_message=str(e))
+
+        @staticmethod
+        def get_s_stab():
+            """
+            Test for the get_s_stab() method of Neuron class.
+            """
+            # Create two neurons
+            neuron1 = Neuron()
+            neuron2 = Neuron()
+
+            try:            
+                # Initial state, there should be no connections
+                assert len(neuron1.connections) == 0, "Initial state failed. Neuron1 has connections."
+                assert len(neuron2.connections) == 0, "Initial state failed. Neuron2 has connections."
+                
+                # Connect neuron2 to neuron1 with specified weight and ttl
+                s_stab = 1
+                neuron2.connect(neuron1, s_stab=s_stab)
+                
+                # Check if neuron1 is connected to neuron2
+                connected = False
+                for conn in neuron2.connections:
+                    if conn['neuron'] == neuron1:
+                        connected = True
+                        assert conn['s_stab'] == 1, "Connection s_stab is incorrect."
+                        break
+                    
+                assert connected, "Failed to connect neuron2 to neuron1."
+                
+                # Get s_stab of connection
+                connection_s_stab = neuron2.get_s_stab(neuron1)
+
+                # Check if s_stab is set correctly
+                assert connection_s_stab == 1, "Connection s_stab is incorrect."
+                    
+                # If there are no assertion errors, the test passed
+                Neuron.Test.print_test_result(test_name="GET_S_STAB", test_passed=True)
+            except AssertionError as e:
+                Neuron.Test.print_test_result(test_name="GET_S_STAB", test_passed=False)
+                Neuron.Test.print_error_message(error_message=str(e))
+
+        @staticmethod
+        def add_s_stab():
+            """
+            Test for the add_s_stab() method of Neuron class.
+            """
+            # Create two neurons
+            neuron1 = Neuron()
+            neuron2 = Neuron()
+
+            try:           
+                # Initial state, there should be no connections
+                assert len(neuron1.connections) == 0, "Initial state failed. Neuron1 has connections."
+                assert len(neuron2.connections) == 0, "Initial state failed. Neuron2 has connections."
+                
+                # Connect neuron2 to neuron1 with specified weight and ttl
+                s_stab = 1
+                neuron2.connect(neuron1, s_stab=s_stab)
+                
+                # Check if neuron1 is connected to neuron2
+                connected = False
+                for conn in neuron2.connections:
+                    if conn['neuron'] == neuron1:
+                        connected = True
+                        assert conn['s_stab'] == 1, "Connection s_stab is incorrect."
+                        break
+                    
+                assert connected, "Failed to connect neuron2 to neuron1."
+                
+                # Add s_stab of connection
+                neuron2.add_s_stab(neuron1)
+
+                # Check if s_stab is set correctly
+                for conn in neuron2.connections:
+                    if conn['neuron'] == neuron1:
+                        assert conn['s_stab'] == 1.5, f"New connection s_stab = {conn['s_stab']} is incorrect. It should be 1.5."
+                        break
+                    else:
+                        raise AssertionError("Failed to set s_stab of connection.")
+                
+                # Add s_stab of connection
+                neuron2.add_s_stab(neuron1)
+
+                # Check if s_stab is set correctly
+                for conn in neuron2.connections:
+                    if conn['neuron'] == neuron1:
+                        assert conn['s_stab'] == 1.7667, f"New connection s_stab = {conn['s_stab']} is incorrect. It should be 1.7."
+                        break
+                    else:
+                        raise AssertionError("Failed to set s_stab of connection.")
+                
+                # Add s_stab of connection
+                neuron2.add_s_stab(neuron1)
+
+                # Check if s_stab is set correctly
+                for conn in neuron2.connections:
+                    if conn['neuron'] == neuron1:
+                        assert conn['s_stab'] == 1.9713, f"New connection s_stab = {conn['s_stab']} is incorrect. It should be 1.9713."
+                        break
+                    else:
+                        raise AssertionError("Failed to set s_stab of connection.")
+                
+                # Add s_stab of connection with 10 cycles
+                for i in range(10):
+                    neuron2.add_s_stab(neuron1)
+                # Check if s_stab is set correctly
+                for conn in neuron2.connections:
+                    if conn['neuron'] == neuron1:
+                        assert conn['s_stab'] == 3.1131, f"New connection s_stab = {conn['s_stab']} is incorrect. It should be 3.1131."
+                        break
+                    else:
+                        raise AssertionError("Failed to set s_stab of connection.")
+                
+                # decrease s_stab of connection with 5 cycles
+                for i in range(10):
+                    neuron2.add_s_stab(neuron1, positive=False)
+                # Check if s_stab is set correctly
+                for conn in neuron2.connections:
+                    if conn['neuron'] == neuron1:
+                        assert conn['s_stab'] == 2.0907, f"New connection s_stab = {conn['s_stab']} is incorrect. It should be 2.0907."
+                        break
+                    else:
+                        raise AssertionError("Failed to set s_stab of connection.")
+                
+                #set value of s_stab as 2
+                neuron2.set_s_stab(neuron1, s_stab=2)
+                # decrease s_stab
+                neuron2.add_s_stab(neuron1, positive=False)
+                # Check if s_stab is set correctly
+                for conn in neuron2.connections:
+                    if conn['neuron'] == neuron1:
+                        assert conn['s_stab'] == 1.8333, f"New connection s_stab = {conn['s_stab']} is incorrect. It should be 1.8333."
+                        break
+                    else:
+                        raise AssertionError("Failed to set s_stab of connection.")
+                
+                #set value of s_stab as 20
+                neuron2.set_s_stab(neuron1, s_stab=20)
+                # decrease s_stab
+                neuron2.add_s_stab(neuron1, positive=False)
+                # Check if s_stab is set correctly
+                for conn in neuron2.connections:
+                    if conn['neuron'] == neuron1:
+                        assert conn['s_stab'] == 19.9976, f"New connection s_stab = {conn['s_stab']} is incorrect. It should be 19.9976."
+                        break
+                    else:
+                        raise AssertionError("Failed to set s_stab of connection.")
+
+                    
+                # If there are no assertion errors, the test passed
+                Neuron.Test.print_test_result(test_name="ADD_S_STAB", test_passed=True)
+            except AssertionError as e:
+                Neuron.Test.print_test_result(test_name="ADD_S_STAB", test_passed=False)
+                Neuron.Test.print_error_message(error_message=str(e))
+        
         @staticmethod
         def get_output_history():
             """
@@ -681,7 +974,7 @@ class Neuron:
                 
                 # Check iinput, membrane addition and leakage
                 assert neuron2.input == 0, f"Neuron2 input is incorrect. It should be 0."
-                assert neuron2.v_m == 9, f"Neuron2 membrane potential is incorrect. It should be 9."  # V_M = (v_m 0 + input 10) * (1 - leakage 10 / 100) = 9
+                assert neuron2.v_m == 9, f"Neuron2 membrane potential {neuron2.v_m } is incorrect. It should be 9."  # V_M = (v_m 0 + input 10) * (1 - leakage 10 / 100) = 9
                 weight = 41
                 neuron2.set_weight_and_ttl(neuron1, weight=weight)
                 neuron2.forward()
@@ -701,11 +994,11 @@ class Neuron:
                 assert neuron2.spike == False, f"Neuron2 has spike. It should not have spike whith threshold = {threshold} and refractory_period_counter = 10."
 
                 #check leakage in time of refractory period
-                neuron2.set_properties(leakage=10)
+                neuron2.set_properties(leakage=50)
                 neuron2.v_m = 10
                 neuron1.spike = False
                 neuron2.forward()
-                assert neuron2.v_m == 9, f"Neuron2 membrane potential is incorrect. It should be 9."  # V_M = (v_m 10 + input 0) * (1 - leakage 10 / 100) = 9
+                assert neuron2.v_m == 4.6, f"Neuron2 membrane potential {neuron2.v_m} incorrect. It should be 4.6."
 
                 # print(neuron2.input, 'input', ' | ', neuron2.v_m, 'v_m', ' | ', neuron2.threshold, 'threshold', ' | ', neuron2.spike, 'spike', ' | ', neuron2.sensitivity, 'sensitivity', ' | ', neuron2.refractory_period_counter, 'refractory_period_counter', ' | ', neuron2.refractory_period, 'refractory_period')
 
@@ -713,6 +1006,104 @@ class Neuron:
                 Neuron.Test.print_test_result(test_name="PROCESS_ACTIVATION", test_passed=True)
             except AssertionError as e:
                 Neuron.Test.print_test_result(test_name="PROCESS_ACTIVATION", test_passed=False)
+                Neuron.Test.print_error_message(error_message=str(e))
+
+        @staticmethod
+        def reinforcement():
+            # create 2 layers of neurons first layer has 2 neurons, second layer has 1 neuron (output neuron which will be reinforced)
+            layer1 = [Neuron() for i in range(2)]
+            layer2 = [Neuron() for i in range(1)]
+
+            try:
+                # connect neurons of second layer to neurons of first layer
+                # connections = [] # list of dicts [ {'neuron': neuron, 'weight': weight, 'ttl': ttl, 's_stab': s_stab}, ...]
+                for neuron in layer1:
+                    for neuron2 in layer2:
+                        neuron2.connect(neuron)
+            
+                # check if neurons of first layer are connected to neuron of second layer
+                for neuron in layer2:
+                    connected = True
+                    for conn in neuron.connections:
+                        if conn['neuron'] not in layer1:
+                            connected = False
+                            break
+                    assert connected, f"Neuron of second layer is not connected to neuron of first layer."
+                
+                # set weight of connections for connections 1 and 2. Connection 1 has weight -50 and connection 2 has weight 50
+                nuron1 = layer1[0]
+                nuron2 = layer1[1]
+                layer2[0].set_weight_and_ttl(nuron1, weight=-20)
+                layer2[0].set_weight_and_ttl(nuron2, weight=50)
+
+                # check if weight of connections is set correctly
+                assert layer2[0].get_weight_and_ttl(nuron1)[0] == -20, f"Weight of connection 1 is incorrect. It should be -20."
+                assert layer2[0].get_weight_and_ttl(nuron2)[0] == 50, f"Weight of connection 2 is incorrect. It should be 50."
+
+                # set threshold of neurons of second layer
+                layer2[0].set_properties(threshold=50)
+
+                # check if threshold of neurons of second layer is set correctly
+                assert layer2[0].threshold == 50, f"Threshold of neuron 1 is incorrect. It should be 50."
+
+                # emulate spike in neurons of first layer
+                nuron1.spike = True
+                nuron2.spike = True
+
+                # input processing
+                for neuron in layer2:
+                    neuron.process_input()
+                
+                # check input of neurons of second layer
+                assert layer2[0].input == 30, f"Input of neuron of second layer is incorrect. It should be 30. (-20 + 50)"
+
+                # check process_activation
+                for neuron in layer2:
+                    neuron.process_activation()
+                    assert neuron.spike == False, f"Spike of neuron 1 is incorrect. It should be False."
+                
+                # check v_m of neurons of second layer to lekage 30 -> 29.97
+                assert layer2[0].v_m == 29.97, f"V_M{layer2[0].v_m} of neuron is incorrect. It should be 30."
+
+                # emulate spike in neurons of first layer
+                nuron1.spike = True
+                nuron2.spike = True
+
+                # now neuron of second layer has should have spike after process_activation
+                for neuron in layer2:
+                    assert neuron.spike == False, f"Spike of neuron is incorrect. It should be False."
+                    # check reset_ratio change to 0,07, after spike v_m = 3.5
+                    neuron.set_properties(reset_ratio=0.07)
+                    neuron.forward()
+                    assert neuron.spike == True, f"Spike of neuron is incorrect. It should be True."
+                    
+                    # check spike, output and output history after forwarding
+                    assert neuron.spike == True, f"Spike of neuron is incorrect. It should be False."
+                    assert neuron.get_output() == True, f"Output of neuron is incorrect. It should be True."
+                    assert neuron.output_history[-1] == True, f"Output history of neuron is incorrect. It should be True."
+                    assert len(neuron.output_history) == 1, f"Output history of neuron is incorrect. It should be 1."
+
+
+                    # check v_m of neurons of second layer  after spike v_m = 3.5
+                    rest = round(neuron.rest + (neuron.reset_ratio['val'] * (neuron.threshold - neuron.rest)), neuron.rounding)
+                    assert neuron.v_m == 3.5, f"V_M{neuron.v_m} of neuron is incorrect. It should be {rest}."
+
+                    # reinforce checkinng
+                    # provide error signal to neuron and check if weight of connection is changed
+                    neuron.reinforcement(error=-5)
+                    assert neuron.get_output() == True, f"Output of neuron is incorrect. It should be False."
+                    assert neuron.get_weight_and_ttl(nuron1)[0] == -25, f"Weight of connection 1 is incorrect. It should be -25."
+                    assert neuron.get_weight_and_ttl(nuron2)[0] == 45, f"Weight of connection 2 is incorrect. It should be 45."
+
+                    # provide error signal to neuron and check if weight of connection is changed
+                    neuron.reinforcement(error=15)
+                    assert neuron.get_weight_and_ttl(nuron1)[0] == -10, f"Weight of connection 1 is incorrect. It should be -10."
+                    assert neuron.get_weight_and_ttl(nuron2)[0] == 60, f"Weight of connection 2 is incorrect. It should be 60."
+
+                # If there are no assertion errors, the test passed
+                Neuron.Test.print_test_result(test_name="reinforcement", test_passed=True)
+            except AssertionError as e:
+                Neuron.Test.print_test_result(test_name="reinforcement", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
 
     class Simulation:
@@ -744,12 +1135,14 @@ def run_test():
     Neuron.Test.disconnect()
     Neuron.Test.set_weight_and_ttl_test()
     Neuron.Test.get_weight_and_ttl()
+    Neuron.Test.set_s_stab()
+    Neuron.Test.get_s_stab()
+    Neuron.Test.add_s_stab()
     Neuron.Test.get_output_history()
     Neuron.Test.process_input()
     Neuron.Test.process_activation()
+    Neuron.Test.reinforcement()
 
 if __name__ == "__main__":
     run_test()
 
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
