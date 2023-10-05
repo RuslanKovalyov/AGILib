@@ -243,7 +243,9 @@ class Neuron:
         self.output_history.append(self.spike)
         # Neurotransmitter processing : TODO: NOT IMPLEMENTED YET
     
+
     # Learning methods
+    ''' Classical methods
     def Backprop(self):
         """
         Backpropagation of error. Take care of TTL weights in propagation implementation.
@@ -264,7 +266,35 @@ class Neuron:
         """
         # NOT IMPLEMENTED YET. TODO: Reinforcement Learning logic
         pass
+    '''
+    
+    def back3P(self):# Back-Propagation of Polymorphic Plasticity
+        """
+        Back-Propagation of Polymorphic Plasticity (back3P):
 
+        A biologically-inspired learning mechanism, `back3P` embodies mathematical paradigms that echo biological neural behaviors. 
+
+        Key parallels include:
+        - Propagation, which abstractly imitates the chemical communication between neurons for efficient information transmission.
+        - The Hebbian principle, acting as an analogue to neurotransmitters that guide neural connection growth.
+        - Reinforcement learning, mirroring the hormonal reinforcement in biological systems, capturing the reward or penalty associated with different stimuli.
+
+        & Cooperation Mechanism:
+        In back3P, penalized neurons promote engagement among less-active neighbors, urging them to partake in the learning process. This mechanism distributes the error, fostering a cooperative environment.
+        The aim is to optimize both individual neuron performance and overall network collaboration, tapping into the potential of underutilized neurons for a more holistic learning approach.
+        
+        * Plasticity as Neuroplasticity
+        Unique to `back3P` is its flexibility in learning modalities:
+        - Neurons can switch between various modes: continuous learning, operation without learning, concurrent operation and learning, and individual intensive training.
+        - The network can undergo phase-based training, where specific parts or clusters of the network can be trained in isolation or in conjunction with others.
+        - One of the hallmark features is the birth of new neurons during operational mode. These neurons, once added, undergo individualized training, showcasing raw neuroplasticity in action. This mimics the biological phenomenon of neurogenesis and integration of new neurons into established neural circuits.
+
+        This methodology isn't just about adjusting weights; it’s about evolving the neural network's architecture and function over time, much like a biological brain. In essence, `back3P` blurs the lines between algorithmic learning methods and natural neural processes, presenting a fresh perspective on neural network learning and adaptability.
+        """
+        pass
+
+
+    # Testing, debugging and visualization
     class Test:
         """
         Tests of neuron functionality and consistency.
@@ -720,3 +750,6 @@ def run_test():
 
 if __name__ == "__main__":
     run_test()
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
