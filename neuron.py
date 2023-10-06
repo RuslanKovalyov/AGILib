@@ -325,11 +325,11 @@ class Neuron:
             # invert error if self output is False
             if self.spike is False:
                 error = -error
-            
             for connect in self.connections:
+                connect = connect["neuron"]
                 # separation of connects as involv / without spike
-                if connect['neuron'].get_output() == True:
-                    self.add_weight(connect['neuron'], error)
+                if connect.get_output() == True:
+                    self.add_weight(connect, error)
                 
                     # change stability of involved connections
                     if error > 0:
@@ -1155,6 +1155,39 @@ class Neuron:
                     assert neuron.get_weight_and_ttl(neuron2)[0] == 60, f"Weight of connection 2 is incorrect. It should be 60."
                 
                     # check stabilizing weights of connections (not matter positive or negative weights), just spiked (involved) connections must be changed. if error is positive - stability of weights must be increased, if error is negative - decreased.
+                    neuron.set_s_stab(neuron1, s_stab=1)
+                    neuron.set_s_stab(neuron2, s_stab=1)
+                    # emulate spike in neurons of first layer
+                    neuron1.spike = True
+                    neuron2.spike = True
+                    neuron.add_s_stab(neuron1)
+                    neuron.add_s_stab(neuron2)
+                    assert neuron.get_s_stab(neuron1) == 1.5, f"Stability of weight {neuron.get_s_stab(neuron1)} of connection 1 is incorrect. It should be 1.5."
+                    assert neuron.get_s_stab(neuron2) == 1.5, f"Stability of weight {neuron.get_s_stab(neuron2)}of connection 2 is incorrect. It should be 1.5."
+                    neuron.add_s_stab(neuron1)
+                    neuron.add_s_stab(neuron2)
+                    assert neuron.get_s_stab(neuron1) == 1.7667, f"Stability of weight of connection 1 is incorrect. It should be 1.7667."
+                    assert neuron.get_s_stab(neuron2) == 1.7667, f"Stability of weight of connection 2 is incorrect. It should be 1.7667."
+                    # negative error
+                    neuron.reinforcement(error=-5)
+                    neuron.add_s_stab(neuron1, positive=False)
+                    neuron.add_s_stab(neuron2, positive=False)
+                    assert neuron.get_s_stab(neuron1) == 1.3122, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1.3122 ."
+                    assert neuron.get_s_stab(neuron2) == 1.3122, f"Stability of weight of connection 2 is {neuron.get_s_stab(neuron2)} incorrect. It should be 1.3122 ."
+                    # change just one connection
+                    neuron.add_s_stab(neuron1, positive=False)
+                    assert neuron.get_s_stab(neuron1) == 1, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1.3122."
+                    assert neuron.get_s_stab(neuron2) == 1.3122, f"Stability of weight of connection 2 is {neuron.get_s_stab(neuron2)} incorrect. It should be 1.3122."
+                    # check it for min value (should be 1)
+                    neuron.set_s_stab(neuron1, s_stab=1)
+                    neuron.set_s_stab(neuron2, s_stab=1)
+                    neuron.add_s_stab(neuron1, positive=False)
+                    neuron.add_s_stab(neuron2, positive=False)
+                    assert neuron.get_s_stab(neuron1) == 1, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1."
+                    neuron.reinforcement(error=5)
+                    assert neuron.get_s_stab(neuron1) == 1.5, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1.5."
+                    neuron.reinforcement(error=-5)
+                    assert neuron.get_s_stab(neuron1) == 1.2333, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1.2333."
                     
 
                 # If there are no assertion errors, the test passed
