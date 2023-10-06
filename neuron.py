@@ -310,25 +310,32 @@ class Neuron:
         Logic:
         if error
         check all spik connections
+
         if self output is True  and connection's is True then increase weight with error
         if self output is False and connection's is True then increase weight with -error
+
         if error is positive(>0) increase the stability of all active connections (synapses) including neagtive values.
         if error is negative(<0) decrease the stability of all active connections (synapses).
         change stability in reverse geometric progression ( s += (1/(s+1)*s) )
+        
         """
  
         # one epoch learning without long associations of output history (one cycle only)
         if error != 0:
+            # invert error if self output is False
             if self.spike is False:
-                # invert error if self output is False
                 error = -error
+            
             for connect in self.connections:
+                # separation of connects as involv / without spike
                 if connect['neuron'].get_output() == True:
                     self.add_weight(connect['neuron'], error)
-                    if error > 0:
-                        self.add_s_stab(connect, positive=True)
-                    else:
-                        self.add_s_stab(connect, positive=False)
+                
+                # stability of connections
+                if error > 0:
+                    self.add_s_stab(connect, positive=True)
+                else:
+                    self.add_s_stab(connect, positive=False)
         
         # TODO: Assative learning with long associations of output history (several cycles)
 
