@@ -348,7 +348,7 @@ class Neuron:
         # NOT IMPLEMENTED YET. TODO: Cooperation mechanism logic
 
         # use random wheigts for not involved neurons in learning process to cooperate them.
-        # use s_stab to increase involvement of neurons which long and stable working in other parts of network.
+        # use s_stab to dencrease involvement of neurons which long and stable working in other patterns of network.
         # look optimisation opportunity by cutting off not involved neurons with high s_stab as they are already stable and not involved in local learning process.
         pass
 
