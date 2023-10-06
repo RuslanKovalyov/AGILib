@@ -317,7 +317,7 @@ class Neuron:
         if error is positive(>0) increase the stability of all active connections (synapses) including neagtive values.
         if error is negative(<0) decrease the stability of all active connections (synapses).
         change stability in reverse geometric progression ( s += (1/(s+1)*s) )
-        
+
         """
  
         # one epoch learning without long associations of output history (one cycle only)
@@ -331,11 +331,11 @@ class Neuron:
                 if connect['neuron'].get_output() == True:
                     self.add_weight(connect['neuron'], error)
                 
-                # stability of connections
-                if error > 0:
-                    self.add_s_stab(connect, positive=True)
-                else:
-                    self.add_s_stab(connect, positive=False)
+                    # change stability of involved connections
+                    if error > 0:
+                        self.add_s_stab(connect, positive=True)
+                    else:
+                        self.add_s_stab(connect, positive=False)
         
         # TODO: Assative learning with long associations of output history (several cycles)
 
@@ -1085,14 +1085,14 @@ class Neuron:
                     assert connected, f"Neuron of second layer is not connected to neuron of first layer."
                 
                 # set weight of connections for connections 1 and 2. Connection 1 has weight -50 and connection 2 has weight 50
-                nuron1 = layer1[0]
-                nuron2 = layer1[1]
-                layer2[0].set_weight_and_ttl(nuron1, weight=-20)
-                layer2[0].set_weight_and_ttl(nuron2, weight=50)
+                neuron1 = layer1[0]
+                neuron2 = layer1[1]
+                layer2[0].set_weight_and_ttl(neuron1, weight=-20)
+                layer2[0].set_weight_and_ttl(neuron2, weight=50)
 
                 # check if weight of connections is set correctly
-                assert layer2[0].get_weight_and_ttl(nuron1)[0] == -20, f"Weight of connection 1 is incorrect. It should be -20."
-                assert layer2[0].get_weight_and_ttl(nuron2)[0] == 50, f"Weight of connection 2 is incorrect. It should be 50."
+                assert layer2[0].get_weight_and_ttl(neuron1)[0] == -20, f"Weight of connection 1 is incorrect. It should be -20."
+                assert layer2[0].get_weight_and_ttl(neuron2)[0] == 50, f"Weight of connection 2 is incorrect. It should be 50."
 
                 # set threshold of neurons of second layer
                 layer2[0].set_properties(threshold=50)
@@ -1101,8 +1101,8 @@ class Neuron:
                 assert layer2[0].threshold == 50, f"Threshold of neuron 1 is incorrect. It should be 50."
 
                 # emulate spike in neurons of first layer
-                nuron1.spike = True
-                nuron2.spike = True
+                neuron1.spike = True
+                neuron2.spike = True
 
                 # input processing
                 for neuron in layer2:
@@ -1120,8 +1120,8 @@ class Neuron:
                 assert layer2[0].v_m == 29.97, f"V_M{layer2[0].v_m} of neuron is incorrect. It should be 30."
 
                 # emulate spike in neurons of first layer
-                nuron1.spike = True
-                nuron2.spike = True
+                neuron1.spike = True
+                neuron2.spike = True
 
                 # now neuron of second layer has should have spike after process_activation
                 for neuron in layer2:
@@ -1146,13 +1146,16 @@ class Neuron:
                     # provide error signal to neuron and check if weight of connection is changed
                     neuron.reinforcement(error=-5)
                     assert neuron.get_output() == True, f"Output of neuron is incorrect. It should be False."
-                    assert neuron.get_weight_and_ttl(nuron1)[0] == -25, f"Weight of connection 1 is incorrect. It should be -25."
-                    assert neuron.get_weight_and_ttl(nuron2)[0] == 45, f"Weight of connection 2 is incorrect. It should be 45."
+                    assert neuron.get_weight_and_ttl(neuron1)[0] == -25, f"Weight of connection 1 is incorrect. It should be -25."
+                    assert neuron.get_weight_and_ttl(neuron2)[0] == 45, f"Weight of connection 2 is incorrect. It should be 45."
 
                     # provide error signal to neuron and check if weight of connection is changed
                     neuron.reinforcement(error=15)
-                    assert neuron.get_weight_and_ttl(nuron1)[0] == -10, f"Weight of connection 1 is incorrect. It should be -10."
-                    assert neuron.get_weight_and_ttl(nuron2)[0] == 60, f"Weight of connection 2 is incorrect. It should be 60."
+                    assert neuron.get_weight_and_ttl(neuron1)[0] == -10, f"Weight of connection 1 is incorrect. It should be -10."
+                    assert neuron.get_weight_and_ttl(neuron2)[0] == 60, f"Weight of connection 2 is incorrect. It should be 60."
+                
+                    # check stabilizing weights of connections (not matter positive or negative weights), just spiked (involved) connections must be changed. if error is positive - stability of weights must be increased, if error is negative - decreased.
+                    
 
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="reinforcement", test_passed=True)
