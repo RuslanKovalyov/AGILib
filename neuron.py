@@ -10,6 +10,7 @@ class Neuron:
 
         self.min_max_weight = (-127, 127)
         self.min_max_ttl = (0, 255)
+        self.layer_dept = None # layer depth of neuron in network. Should be setted by network class. Used for cooperation mechanism  as caunter init, infinite recursion prevention.
 
         self.input = 0 # current sum of inputs, and old inputs eith ttl > 0
         self.output_history = [] # append spike to this list every tick
@@ -339,18 +340,65 @@ class Neuron:
         
         # TODO: Assative learning with long associations of output history (several cycles)
 
-    def cooperation(self):
+    def cooperation(self, error, retransmission_counter=None):
         """
         Cooperation mechanism:
         In back3P, penalized neurons promote engagement among less-active neighbors, urging them to partake in the learning process. This mechanism distributes the error, fostering a cooperative environment.
         The aim is to optimize both individual neuron performance and overall network collaboration, tapping into the potential of underutilized neurons for a more holistic learning approach.
-        """
-        # NOT IMPLEMENTED YET. TODO: Cooperation mechanism logic
+        
+        Logic:
+        use smaller error for not involved,in current learning pattern, neurons with congruent polarity of weights, to cooperate them.
+        use s_stab to dencrease involvement of neurons which long and stable working in other patterns of network.
+        dendrites with high s_stab are stable and less sensitive to learning other network patterns.
+        but the neuron as a whole can have different stabilities in different dendrites. (simulation of synapce strength)
 
-        # use random wheigts for not involved neurons in learning process to cooperate them.
-        # use s_stab to dencrease involvement of neurons which long and stable working in other patterns of network.
-        # look optimisation opportunity by cutting off not involved neurons with high s_stab as they are already stable and not involved in local learning process.
-        pass
+        * only negative error will activate cooperation mechanism for involving neurons with congruent polarity of weights * low s_stab.
+        it will motivate other neurons to solving the problem but only if specific dendrites do not deal with more important pattern image.
+
+        * retransmission counter - is used to prevent infinite recursion in case of network error. must be 1 as first call of recursion. and ~self.layer_depth as max recursion depth.
+        """
+        
+        # 1. check legitimacy of cooperation and retransmission counter
+
+        if error < 0 and not self.get_output(): # legal cooperation only if error is negative and self spike=False
+            # check in self layer > 0
+            if self.layer_dept is not None and self.layer_dept > 0: # 0 is input layer
+                # check if error was from "cooperation" mechanism, or "reinforcement" learning response as network reaction on nuron decision.
+                # counter logic and retransmission bounds check
+                if retransmission_counter is None or retransmission_counter < self.layer_dept:
+                    if retransmission_counter is None:
+                        retransmission_counter = 1
+                    else:
+                        retransmission_counter += 1
+
+                    # 2. weights correction by s_stab if connection was not involved and polarity is congruent.
+
+                    # check weights polarity to congruence by self output and error
+                    # * if self spike and then negative error so congruent polarity is negative.
+                    # * if  not spike and then negative error so congruent polarity is positive.
+                    congruent_polarity = self.spike == False
+                    for connect in self.connections:
+                        if connect['neuron'].get_output() == False: # check if neuron was not involved in current learning pattern
+                            if connect['weight'] != 0 and congruent_polarity == connect['weight'] > 0: # weight adding to not involved connections only with congruent polarity of weights
+                                # increase weight with small random but congruent value (+ or -)
+                                if congruent_polarity:
+                                    connect['weight'] += random.uniform(0, self.rand_learning)/connect['s_stab']
+                                else:
+                                    connect['weight'] -= random.uniform(0, self.rand_learning)/connect['s_stab']
+
+                            # add weight with random value to potentialy involved connections to future learning process 
+                            elif connect['weight'] == 0: # NOTE: not shure about this part of code. TODO: check result with and without this part of code.
+                                connect['weight'] = random.uniform(-self.rand_init, self.rand_init)/connect['s_stab'] # NOTE: no signal and strong s_stab can tell that this connection potentially can be deleted. NOTE: s_stab can be not actual or low for 0val connections.
+
+                            # 3. call cooperation for other neurons of self connections
+
+                            # recursion call. limited by self.layer_depth
+                            connect['neuron'].cooperation(error, retransmission_counter)
+
+        # TODO: potencialy (check it) can prevent overfitting by decreasing excessive connections.
+        else: # positive error and self spike=True will activate "DECOOPERATION"
+            # potencialy can be used as network optimization by decreasing excessive connections. (analogous to firing people)
+            pass
 
     def recursive_prop(self):
         """
@@ -1198,6 +1246,10 @@ class Neuron:
                 Neuron.Test.print_error_message(error_message=str(e))
                 passed = False
             return passed
+        
+        @staticmethod
+        def cooperation():
+            pass # TODO: implement cooperation test
 
         # Run all tests
         @staticmethod
