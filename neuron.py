@@ -309,10 +309,10 @@ class Neuron:
         _______________________________________________________
         Logic:
         if error
-        check all connections to spik
-        if self output is True  and connection's is True as increase weight with error
-        if self output is False and connection's is True as increase weight with -error
-        if error is positive(>0) increase the stability of all active connections (synapses).
+        check all spik connections
+        if self output is True  and connection's is True then increase weight with error
+        if self output is False and connection's is True then increase weight with -error
+        if error is positive(>0) increase the stability of all active connections (synapses) including neagtive values.
         if error is negative(<0) decrease the stability of all active connections (synapses).
         change stability in reverse geometric progression ( s += (1/(s+1)*s) )
         """
