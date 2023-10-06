@@ -13,6 +13,8 @@ class Neuron:
 
         self.input = 0 # current sum of inputs, and old inputs eith ttl > 0
         self.output_history = [] # append spike to this list every tick
+        self.rand_init = 50 # +/- random weight on initilization connection
+        self.rand_learning = 10 # +/- random weight adding in cooperation mechanism
 
         # Membrane properties
         self.rest = 0 # resting potential of v_membrane
@@ -118,12 +120,12 @@ class Neuron:
     '''
 
     # Connection methods - one to many connections (dendritic).
-    def connect(self, other_neuron, weight=None, ttl=0, s_stab=1): # s_stab cant be 0! (division by zero error)
+    def connect(self, other_neuron, weight=None, ttl=0, s_stab=1, ): # s_stab cant be 0! (division by zero error)
         """
         Connect to other neuron.
         """
         if weight is None:
-            weight = random.uniform(-50, 50)  
+            weight = random.uniform(-self.rand_init, self.rand_init)  
         self.connections.append({'neuron': other_neuron, 'weight': weight, 'ttl': ttl, 's_stab': s_stab})
 
         # TODO: dendrite growth analogy to emulate neuroplasticity of network.
