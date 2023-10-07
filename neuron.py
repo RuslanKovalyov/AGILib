@@ -46,7 +46,7 @@ class Neuron:
         # constants
         self.rounding = 4 # rounding of float numbers like v_m, weight, etc.
         
-    def set_properties(self, rest=None, threshold=None, reset_ratio=None, leakage=None, sensitivity=None, sensitivity_adjust_rate=None, sensitivity_restore_rate=None, refractory_period=None):
+    def set_properties(self, rest=None, threshold=None, reset_ratio=None, leakage=None, sensitivity=None, sensitivity_adjust_rate=None, sensitivity_restore_rate=None, refractory_period=None, layer_dept=None):
         """
         Set properties of neuron with boundary checks.
         """
@@ -95,6 +95,9 @@ class Neuron:
             else:
                 self.refractory_period['val'] = 1
 
+        # set layer depth
+        self.layer_dept = layer_dept
+        
     ''' |||CONCEPT STAGE|||
 
     TODO: add initiallization by genetic algorithms for better aptimization of network structure and parameters.
@@ -126,7 +129,10 @@ class Neuron:
         Connect to other neuron.
         """
         if weight is None:
-            weight = random.uniform(-self.rand_init, self.rand_init)  
+            weight = round(random.uniform(-self.rand_init, self.rand_init), self.rounding)
+        if s_stab is 0:
+            s_stab = 1
+            print('\033[93m',"s_stab can't be 0! (division by zero error), for now it's setted to 1.",'\033[0m')
         self.connections.append({'neuron': other_neuron, 'weight': weight, 'ttl': ttl, 's_stab': s_stab})
 
         # TODO: dendrite growth analogy to emulate neuroplasticity of network.
@@ -149,7 +155,7 @@ class Neuron:
         for connection in self.connections:
             if connection['neuron'] == target_neuron:
                 if weight is not None:
-                    connection['weight'] = weight
+                    connection['weight'] = round(weight, self.rounding)
                 if ttl is not None:
                     connection['ttl'] = ttl
                 break
@@ -171,7 +177,7 @@ class Neuron:
             if connection['neuron'] == target_neuron:
                 if value is not None:
                     new_weight = round(connection['weight'] + value, self.rounding)
-                    connection['weight'] = min(self.min_max_weight[1], max(self.min_max_weight[0], new_weight)) # boundary checks
+                    connection['weight'] = round(min(self.min_max_weight[1], max(self.min_max_weight[0], new_weight)), self.rounding) # boundary checks
                 break
 
     def set_s_stab(self, target_neuron, s_stab=None):
@@ -180,7 +186,7 @@ class Neuron:
         """
         for connection in self.connections:
             if connection['neuron'] == target_neuron:
-                if s_stab is not None:
+                if s_stab is not None and s_stab > 0:
                     connection['s_stab'] = s_stab
                 break
     
@@ -340,7 +346,7 @@ class Neuron:
         
         # TODO: Assative learning with long associations of output history (several cycles)
 
-    def cooperation(self, error, retransmission_counter=None):
+    def cooperation(self, error, retransmission_counter): # motivate5 to cooperation
         """
         Cooperation mechanism:
         In back3P, penalized neurons promote engagement among less-active neighbors, urging them to partake in the learning process. This mechanism distributes the error, fostering a cooperative environment.
@@ -356,47 +362,25 @@ class Neuron:
         it will motivate other neurons to solving the problem but only if specific dendrites do not deal with more important pattern image.
 
         * retransmission counter - is used to prevent infinite recursion in case of network error. must be 1 as first call of recursion. and ~self.layer_depth as max recursion depth.
-        """
-        
+        """  
         # 1. check legitimacy of cooperation and retransmission counter
-
-        if error < 0 and not self.get_output(): # legal cooperation only if error is negative and self spike=False
+        if error < 0 and self.get_output()==False and retransmission_counter > 0: # legal cooperation only if error is negative and self spike=False
             # check in self layer > 0
             if self.layer_dept is not None and self.layer_dept > 0: # 0 is input layer
                 # check if error was from "cooperation" mechanism, or "reinforcement" learning response as network reaction on nuron decision.
                 # counter logic and retransmission bounds check
-                if retransmission_counter is None or retransmission_counter < self.layer_dept:
-                    if retransmission_counter is None:
-                        retransmission_counter = 1
-                    else:
-                        retransmission_counter += 1
+                retransmission_counter -= 1
+                for connect in self.connections:
+                    # self.output and error shuld be negative. weight of not involved connections positive.
+                    if connect['neuron'].get_output() == False: # check if neuron was not involved in current learning pattern
+                        if connect['weight'] >= 0: # weight adding/s_stab+(-error val/s_stab) to not involved connections
+                            connect['weight'] = round(connect['weight'] + (random.uniform(0, self.rand_learning)+(-error))/connect['s_stab'], self.rounding)
+                        # recursion call. limited by self.layer_depth
+                        connect['neuron'].cooperation(error, retransmission_counter)
 
-                    # 2. weights correction by s_stab if connection was not involved and polarity is congruent.
-
-                    # check weights polarity to congruence by self output and error
-                    # * if self spike and then negative error so congruent polarity is negative.
-                    # * if  not spike and then negative error so congruent polarity is positive.
-                    congruent_polarity = self.spike == False
-                    for connect in self.connections:
-                        if connect['neuron'].get_output() == False: # check if neuron was not involved in current learning pattern
-                            if connect['weight'] != 0 and congruent_polarity == connect['weight'] > 0: # weight adding to not involved connections only with congruent polarity of weights
-                                # increase weight with small random but congruent value (+ or -)
-                                if congruent_polarity:
-                                    connect['weight'] += random.uniform(0, self.rand_learning)/connect['s_stab']
-                                else:
-                                    connect['weight'] -= random.uniform(0, self.rand_learning)/connect['s_stab']
-
-                            # add weight with random value to potentialy involved connections to future learning process 
-                            elif connect['weight'] == 0: # NOTE: not shure about this part of code. TODO: check result with and without this part of code.
-                                connect['weight'] = random.uniform(-self.rand_init, self.rand_init)/connect['s_stab'] # NOTE: no signal and strong s_stab can tell that this connection potentially can be deleted. NOTE: s_stab can be not actual or low for 0val connections.
-
-                            # 3. call cooperation for other neurons of self connections
-
-                            # recursion call. limited by self.layer_depth
-                            connect['neuron'].cooperation(error, retransmission_counter)
-
-        # TODO: potencialy (check it) can prevent overfitting by decreasing excessive connections.
-        else: # positive error and self spike=True will activate "DECOOPERATION"
+        else:
+            # TODO: potencialy (check it) can prevent overfitting by decreasing excessive connections.
+            # positive error and self spike=True will activate "DECOOPERATION"
             # potencialy can be used as network optimization by decreasing excessive connections. (analogous to firing people)
             pass
 
@@ -1111,7 +1095,7 @@ class Neuron:
             return passed
 
         @staticmethod
-        def reinforcement():
+        def reinforcement(): # NOTE - this test is not complete HAVE issues with reinforcement function call!!!! TODO
             # create 2 layers of neurons first layer has 2 neurons, second layer has 1 neuron (output neuron which will be reinforced)
             layer1 = [Neuron() for i in range(2)]
             layer2 = [Neuron() for i in range(1)]
@@ -1249,7 +1233,56 @@ class Neuron:
         
         @staticmethod
         def cooperation():
-            pass # TODO: implement cooperation test
+            # crate 2 layers of neurons first layer has 2 neurons, second layer has 1 neuron (output neuron which will be cooperate neurons of first layer)
+            layer1 = [Neuron() for i in range(2)]
+            layer2 = [Neuron() for i in range(1)]
+
+            try:
+                # 1. connect neurons, set parameters.
+                neuron = layer2[0]
+                neuron.set_properties(threshold=50, refractory_period=0, leakage=0)
+                neuron.connect(layer1[0], weight=10, s_stab=7)
+                neuron.connect(layer1[1], weight=40, s_stab=None)
+                assert len(neuron.connections) == 2, f"Neuron has {len(neuron.connections)} connections. It should have 2 connections."
+                layer1[0].spike = False
+                layer1[1].spike = True
+                neuron.set_properties(layer_dept=1)
+                
+                # 2. forwarding
+                neuron.forward()
+                assert neuron.spike == neuron.get_output() == False, f"Spike of neuron is incorrect.  (False_S + w40)<trish50 It should be False."
+
+                #3. check cooperation
+                neuron.cooperation(error=-50, retransmission_counter=neuron.layer_dept)
+
+
+                # 4. check counter
+                neuron.set_weight_and_ttl(layer1[0], weight=10)
+                neuron.cooperation(error=-50, retransmission_counter=0) # counter is equal or more than layer_dept (1) so recursion is stopped.
+
+                # 5. check cooperation with  negative weight
+                neuron.set_weight_and_ttl(layer1[0], weight=-10)
+                neuron.cooperation(error=-50, retransmission_counter=1)
+                assert neuron.get_weight_and_ttl(layer1[0])[0] == -10, f"Weight of connection is incorrect. It should be -10."
+
+                # 6. check cooperation with  positive error
+                neuron.set_weight_and_ttl(layer1[0], weight=10)
+                neuron.cooperation(error=50, retransmission_counter=1)
+                assert neuron.get_weight_and_ttl(layer1[0])[0] == 10, f"Weight of connection is incorrect. It should be 10."
+                
+                
+
+
+                
+            
+                # If there are no assertion errors, the test passed
+                Neuron.Test.print_test_result(test_name="cooperation", test_passed=True)
+                passed = True
+            except AssertionError as e:
+                Neuron.Test.print_test_result(test_name="cooperation", test_passed=False)
+                Neuron.Test.print_error_message(error_message=str(e))
+                passed = False
+            return passed
 
         # Run all tests
         @staticmethod
@@ -1270,14 +1303,27 @@ class Neuron:
             if not Neuron.Test.process_input(): all_passed = False
             if not Neuron.Test.process_activation(): all_passed = False
             if not Neuron.Test.reinforcement(): all_passed = False
+            if not Neuron.Test.cooperation(): all_passed = False
 
             GREEN = '\033[92m'
             RED = '\033[91m'
             RESET = '\033[0m'
             if all_passed:
-                print(f"{GREEN}---> All tests passed <---{RESET}")
+                print("                                      "                          f"(  )   (   (  (         ")
+                print(f"{GREEN}      ______________                 {RESET} ",          f") (    (    )           ")
+                print(f"{GREEN}     /--------------\\               {RESET} ",          f"(  )   (   )  )         ")
+                print(f"{GREEN}    /----------------\\              {RESET} ",          f" _____________          ")
+                print(f"{GREEN}   /------------------\\             {RESET} ",          f"|_____________|  _      ")
+                print(f"{GREEN}  /--------------------\\            {RESET} ",          f"|             |/ _ \    ")
+                print(f"{GREEN} /----------------------\\           {RESET} ",          f"|    Like a     | | |   ")
+                print(f"{GREEN}\u250C------------------------\u2510 {RESET}          ", f"|     BOSS      | | |   ")
+                print(f"{GREEN}|--> All tests passed <--|           {RESET}",           f"|             |\___/    ")
+                print(f"{GREEN}\u2514------------------------\u2518 {RESET}          ", f" \___________/          ")
+                      
+                print("")
+
             else:
-                print(f"{RED}---> Some tests failed <---{RESET}")
+                print(f"{RED}---> Some tests failed <---{RESET}\n\n")
 
     class Simulation:
         """
