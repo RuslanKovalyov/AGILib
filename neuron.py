@@ -1,6 +1,7 @@
 import random
 
 class Neuron:
+    """ 0 layer is for input neurons (sensors only layer), have less core processing."""
     def __init__(self):
         # Connection properties
         self.connections = [] # list of dicts [ {'neuron': neuron, 'weight': weight, 'ttl': ttl, 's_stab': s_stab}, ...]
@@ -307,8 +308,9 @@ class Neuron:
     
 
     # Learning methods
-    def reinforcement(self, error):
-        
+
+    def reinforcement(self, error): # one neuron learning
+        # work only with involved connections (conn.spike=True)
         """
         A unique version of reinforcement Learning.
         * Encapsulates the logic for correcting its own weights and does not participate in learning at the network level.
@@ -318,8 +320,8 @@ class Neuron:
         if error
         check all spik connections
 
-        if self output is True  and connection's is True then increase weight with error
-        if self output is False and connection's is True then increase weight with -error
+        if self output is True  and connection's is True then increase weight with error/stab
+        if self output is False and connection's is True then increase weight with -error/stab
 
         if error is positive(>0) increase the stability of all active connections (synapses) including neagtive values.
         if error is negative(<0) decrease the stability of all active connections (synapses).
@@ -329,6 +331,7 @@ class Neuron:
  
         # one epoch learning without long associations of output history (one cycle only)
         if error != 0:
+            stab = True if error > 0 else False
             # invert error if self output is False
             if self.spike is False:
                 error = -error
@@ -336,19 +339,28 @@ class Neuron:
                 connect = connect["neuron"]
                 # separation of connects as involv / without spike
                 if connect.get_output() == True:
-                    self.add_weight(connect, error)
+                    self.add_weight(connect, error/self.get_s_stab(connect))
                 
                     # change stability of involved connections
-                    if error > 0:
-                        self.add_s_stab(connect, positive=True)
-                    else:
-                        self.add_s_stab(connect, positive=False)
+                    self.add_s_stab(connect, positive=stab)
         
         # TODO: Assative learning with long associations of output history (several cycles)
 
-    def cooperation(self, error, retransmission_counter): # motivate5 to cooperation
+    def recursive_reinforcement(self, network):
         """
-        Cooperation mechanism:
+
+        Recursive reinforcement back-propagation ensures error propagation taking into account the local requirements of specific neurons.
+        """
+        # 1. use reinforcement()
+
+        # 2. call recursive_reinforcement() for all connected neurons
+
+
+        pass
+
+    def cooperation(self, error, retransmission_counter): # recursion
+        """
+        Cooperation mechanism: (recursive)
         In back3P, penalized neurons promote engagement among less-active neighbors, urging them to partake in the learning process. This mechanism distributes the error, fostering a cooperative environment.
         The aim is to optimize both individual neuron performance and overall network collaboration, tapping into the potential of underutilized neurons for a more holistic learning approach.
         
@@ -361,7 +373,7 @@ class Neuron:
         * only negative error will activate cooperation mechanism for involving neurons with congruent polarity of weights * low s_stab.
         it will motivate other neurons to solving the problem but only if specific dendrites do not deal with more important pattern image.
 
-        * retransmission counter - is used to prevent infinite recursion in case of network error. must be 1 as first call of recursion. and ~self.layer_depth as max recursion depth.
+        * retransmission counter - is used to prevent infinite recursion in case of network error. On first call couter must be equal to neuron_depth number, then (in recurent call)will passed counter number, and not depth number of next neuron, for decrementing.
         """  
         # 1. check legitimacy of cooperation and retransmission counter
         if error < 0 and self.get_output()==False and retransmission_counter > 0: # legal cooperation only if error is negative and self spike=False
@@ -384,17 +396,14 @@ class Neuron:
             # potencialy can be used as network optimization by decreasing excessive connections. (analogous to firing people)
             pass
 
-    def recursive_prop(self):
+    def noisy_network(self): # random weights adding
         """
-        Recursive propagation ensures error propagation taking into account the local requirements of specific neurons.
-        * Cooperation Mechanism:
-        In back3P, penalized neurons promote engagement among less-active neighbors, urging them to partake in the learning process. This mechanism distributes the error, fostering a cooperative environment.
-        The aim is to optimize both individual neuron performance and overall network collaboration, tapping into the potential of underutilized neurons for a more holistic learning approach.
+        Random weights adding to all connections in the network.
+        s_stab will be decrease noise effect.
         """
-        # NOT IMPLEMENTED YET. TODO: Recursive propagation logic
         pass
     
-    def Backprop(self):
+    def backprop(self):
         """
         Backpropagation of error. 
         """
@@ -403,7 +412,7 @@ class Neuron:
         # NOTE: Take care of TTL weights in propagation implementation.
         pass
 
-    def Hebbian(self):
+    def hebbian(self):
         """
         Highly extended and adapted Hebbian learning with new features. Name is used for associative purposes for code readability.
         """
@@ -1220,6 +1229,26 @@ class Neuron:
                     assert neuron.get_s_stab(neuron1) == 1.5, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1.5."
                     neuron.reinforcement(error=-5)
                     assert neuron.get_s_stab(neuron1) == 1.2333, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1.2333."
+
+
+                    # stability check
+                    layer1 = [Neuron() for i in range(3)]
+                    layer2 = [Neuron() for i in range(1)]
+                    neuron = layer2[0]
+                    neuron.set_properties(layer_dept=1 ,threshold=5, refractory_period=0, leakage=0)
+                    neuron.connect(layer1[0], weight=-10, s_stab=7)
+                    neuron.connect(layer1[1], weight=0,  s_stab=7)
+                    neuron.connect(layer1[2], weight=15, s_stab=7)
+                    layer1[0].spike = False
+                    layer1[1].spike = False
+                    layer1[2].spike = True
+                    neuron.forward()
+                    error = -10 
+                    neuron.reinforcement(error=error)
+                    assert neuron.get_s_stab(layer1[0]) == 7, f"Stability of weight of connection 1 is {neuron.get_s_stab(layer1[0])} incorrect. It should be 7."
+                    assert neuron.get_s_stab(layer1[1]) == 7, f"Stability of weight of connection 2 is {neuron.get_s_stab(layer1[1])} incorrect. It should be 7."
+                    assert neuron.get_s_stab(layer1[2]) == 6.9821, f"Stability of weight of connection 3 is {neuron.get_s_stab(layer1[2])} incorrect. It should be 6.9821"
+
                     
 
                 # If there are no assertion errors, the test passed
@@ -1252,29 +1281,56 @@ class Neuron:
                 neuron.forward()
                 assert neuron.spike == neuron.get_output() == False, f"Spike of neuron is incorrect.  (False_S + w40)<trish50 It should be False."
 
-                #3. check cooperation
+                #3. check cooperation with negative error
                 neuron.cooperation(error=-50, retransmission_counter=neuron.layer_dept)
 
 
-                # 4. check counter
+                # 4. check counter of retransmission (not involved connection)
                 neuron.set_weight_and_ttl(layer1[0], weight=10)
-                neuron.cooperation(error=-50, retransmission_counter=0) # counter is equal or more than layer_dept (1) so recursion is stopped.
+                neuron.cooperation(error=-50, retransmission_counter=0)
+                assert neuron.get_weight_and_ttl(layer1[0])[0] == 10, f"Weight of connection is incorrect. It should be 10."
 
-                # 5. check cooperation with  negative weight
+                # 5. check cooperation with  negative weight (not involved connection)
                 neuron.set_weight_and_ttl(layer1[0], weight=-10)
                 neuron.cooperation(error=-50, retransmission_counter=1)
                 assert neuron.get_weight_and_ttl(layer1[0])[0] == -10, f"Weight of connection is incorrect. It should be -10."
 
-                # 6. check cooperation with  positive error
+                # 6. check cooperation with  positive error (not involved connection)
                 neuron.set_weight_and_ttl(layer1[0], weight=10)
                 neuron.cooperation(error=50, retransmission_counter=1)
                 assert neuron.get_weight_and_ttl(layer1[0])[0] == 10, f"Weight of connection is incorrect. It should be 10."
                 
                 
 
-
+                # gurbage move to recursive prop test
+                layer1 = [Neuron() for i in range(3)]
+                layer2 = [Neuron() for i in range(1)]
+                neuron = layer2[0]
+                neuron.set_properties(layer_dept=1 ,threshold=5, refractory_period=0, leakage=0)
+                neuron.connect(layer1[0], weight=-10, s_stab=7)
+                neuron.connect(layer1[1], weight=0,  s_stab=7)
+                neuron.connect(layer1[2], weight=15, s_stab=7)
+                layer1[0].spike = False
+                layer1[1].spike = False
+                layer1[2].spike = True
+                neuron.forward()
                 
-            
+                print('output is ' ,neuron.get_output())
+                error = -10
+
+                # not involved connections
+                neuron.cooperation(error=error, retransmission_counter=neuron.layer_dept)
+                print('\ncooperation')
+                for conn in neuron.connections:
+                    print(f"weight {conn['weight']}", "     -   stable", conn['s_stab'])
+                    
+                # involved connections
+                neuron.reinforcement(error=error)
+                print('\nreinforcement')
+                for conn in neuron.connections:
+                    print(f"weight {conn['weight']}", "     -   stable", conn['s_stab'])
+
+
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="cooperation", test_passed=True)
                 passed = True
