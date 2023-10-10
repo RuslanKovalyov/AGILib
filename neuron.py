@@ -130,9 +130,9 @@ class Neuron:
         """
         Connect to other neuron.
         """
-        if weight is None:
+        if weight == None:
             weight = round(random.uniform(-self.rand_init, self.rand_init), self.rounding)
-        if s_stab is 0:
+        if s_stab == 0:
             s_stab = 1
             print('\033[93m',"s_stab can't be 0! (division by zero error), for now it's setted to 1.",'\033[0m')
         self.connections.append({'neuron': other_neuron, 'weight': weight, 'ttl': ttl, 's_stab': s_stab})
@@ -820,6 +820,37 @@ class Neuron:
 
                 # Check if s_stab is set correctly
                 assert connection_s_stab == 1, "Connection s_stab is incorrect."
+
+                # increment s_stab of connection
+                neuron2.add_s_stab(neuron1, positive=True)
+                assert neuron2.get_s_stab(neuron1) == 1.5, "Connection s_stab is incorrect."
+                neuron2.add_s_stab(neuron1, positive=True)
+                assert neuron2.get_s_stab(neuron1) == 1.7667, "Connection s_stab is incorrect."
+
+                # decrement s_stab of connection
+                neuron2.add_s_stab(neuron1, positive=False)
+                assert neuron2.get_s_stab(neuron1) == 1.5621, "Connection s_stab is incorrect."
+                neuron2.add_s_stab(neuron1, positive=False)
+                assert neuron2.get_s_stab(neuron1) == 1.3122, "Connection s_stab is incorrect."
+
+                # add s_stab of connection through error
+                neuron2.set_s_stab(neuron1, s_stab=1)
+                neuron2.connections[0]['neuron'].spike = False
+                neuron2.spike = True
+                # positive error
+                neuron2.reinforcement(error=+1)
+                assert neuron2.get_s_stab(neuron1) == 1, "Connection s_stab is incorrect."
+                # with not spike shuld still work
+                neuron2.spike = False # reset spike
+                neuron2.reinforcement(error=+1)
+                assert neuron2.get_s_stab(neuron1) == 1, "Connection s_stab is incorrect."
+                # negative error
+                neuron2.set_s_stab(neuron1, s_stab=10)
+                neuron2.reinforcement(error=-1)
+                assert neuron2.get_s_stab(neuron1) == 10, "Connection s_stab is incorrect."
+                neuron2.reinforcement(error=-1)
+                assert neuron2.get_s_stab(neuron1) == 10, "Connection s_stab is incorrect."
+
                     
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="GET_S_STAB", test_passed=True)
@@ -1412,14 +1443,14 @@ class Neuron:
                 
                 # learning (pass error to last layer recursive_learning function)
                 for i in range(10):
-                    print('\nepoch', i)
+                    # print('\nepoch', i)
                     for n in layer2:
                         n.recursive_learning(error=-10)
                     
                     # check if weights are changed in all layer 1 and 2
                     for n in layer1+layer2:
                         for conn in n.connections:
-                            print(conn['weight'])
+                            # print(conn['weight'])
                             assert conn['weight'] >1, f"Weight of connection ({conn['weight']}) is incorrect. It should be 1."
                 
                 
