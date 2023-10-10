@@ -203,6 +203,10 @@ class Neuron:
 
     def add_s_stab(self, target_neuron, positive=True):
         """
+        # TODO: for now dependence of s_stab to error val not implemented ( i call the function in cycle for error times ). NOTE need to implement it here and remove cycle from learning function.
+
+        * Effect on involved connections (conn.spike=True) only.
+        
         Add s_stab of connection to target neuron in negative geometric progression.
         """
         for connection in self.connections:
@@ -341,9 +345,10 @@ class Neuron:
                 # separation of connects as involv / without spike
                 if connect.get_output() == True:
                     self.add_weight(connect, error/self.get_s_stab(connect))
-                
-                    # change stability of involved connections
-                    self.add_s_stab(connect, positive=stab)
+
+                    for i in range(abs(round(error))):
+                        # change stability of involved connections (for cycle make stability dependent on error)
+                        self.add_s_stab(connect, positive=stab)
         
         # TODO: Assative learning with long associations of output history (several cycles)
 
@@ -832,17 +837,44 @@ class Neuron:
                 assert neuron2.get_s_stab(neuron1) == 1.5621, "Connection s_stab is incorrect."
                 neuron2.add_s_stab(neuron1, positive=False)
                 assert neuron2.get_s_stab(neuron1) == 1.3122, "Connection s_stab is incorrect."
+                neuron2.add_s_stab(neuron1, positive=False)
+                assert neuron2.get_s_stab(neuron1) == 1, "Connection s_stab is incorrect."
+                # stab cant be less than 1
+                neuron2.add_s_stab(neuron1, positive=False)
+                assert neuron2.get_s_stab(neuron1) == 1, "Connection s_stab is incorrect."
+                
+
 
                 # add s_stab of connection through error
+                neuron2.set_s_stab(neuron1, s_stab=1)
+                neuron2.connections[0]['neuron'].spike = True
+                neuron2.spike = True
+                # positive error
+                neuron2.reinforcement(error=1)
+                assert neuron2.get_s_stab(neuron1) == 1.5, "Connection s_stab is incorrect."
+                # with not spike shuld still work
+                neuron2.spike = False # reset spike
+                neuron2.reinforcement(error=1)
+                assert neuron2.get_s_stab(neuron1) == 1.7667, f"Connection s_stab {neuron2.get_s_stab(neuron1)} is incorrect."
+                # max stab check (s_stab cant be more than 100)
+                neuron2.set_s_stab(neuron1, s_stab=99)
+                # cycle by error (50 times)
+                neuron2.reinforcement(error=50)
+                assert neuron2.get_s_stab(neuron1) == 99.005, "Connection s_stab is incorrect."
+                neuron2.set_s_stab(neuron1, s_stab=100)
+                neuron2.reinforcement(error=1)
+                assert neuron2.get_s_stab(neuron1) == 100, "Connection s_stab is incorrect."
+
+                # not involved connection shuld not change s_stab
                 neuron2.set_s_stab(neuron1, s_stab=1)
                 neuron2.connections[0]['neuron'].spike = False
                 neuron2.spike = True
                 # positive error
-                neuron2.reinforcement(error=+1)
+                neuron2.reinforcement(error=1)
                 assert neuron2.get_s_stab(neuron1) == 1, "Connection s_stab is incorrect."
                 # with not spike shuld still work
                 neuron2.spike = False # reset spike
-                neuron2.reinforcement(error=+1)
+                neuron2.reinforcement(error=1)
                 assert neuron2.get_s_stab(neuron1) == 1, "Connection s_stab is incorrect."
                 # negative error
                 neuron2.set_s_stab(neuron1, s_stab=10)
@@ -850,6 +882,11 @@ class Neuron:
                 assert neuron2.get_s_stab(neuron1) == 10, "Connection s_stab is incorrect."
                 neuron2.reinforcement(error=-1)
                 assert neuron2.get_s_stab(neuron1) == 10, "Connection s_stab is incorrect."
+                # min stab check (s_stab cant be less than 1)
+                neuron2.set_s_stab(neuron1, s_stab=1)
+                neuron2.reinforcement(error=-1)
+                assert neuron2.get_s_stab(neuron1) == 1, "Connection s_stab is incorrect."
+
 
                     
                 # If there are no assertion errors, the test passed
@@ -1242,7 +1279,7 @@ class Neuron:
                     assert neuron.get_s_stab(neuron1) == 1.7667, f"Stability of weight of connection 1 is incorrect. It should be 1.7667."
                     assert neuron.get_s_stab(neuron2) == 1.7667, f"Stability of weight of connection 2 is incorrect. It should be 1.7667."
                     # negative error
-                    neuron.reinforcement(error=-5)
+                    neuron.reinforcement(error=-1)
                     neuron.add_s_stab(neuron1, positive=False)
                     neuron.add_s_stab(neuron2, positive=False)
                     assert neuron.get_s_stab(neuron1) == 1.3122, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1.3122 ."
@@ -1257,9 +1294,9 @@ class Neuron:
                     neuron.add_s_stab(neuron1, positive=False)
                     neuron.add_s_stab(neuron2, positive=False)
                     assert neuron.get_s_stab(neuron1) == 1, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1."
-                    neuron.reinforcement(error=5)
+                    neuron.reinforcement(error=1)
                     assert neuron.get_s_stab(neuron1) == 1.5, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1.5."
-                    neuron.reinforcement(error=-5)
+                    neuron.reinforcement(error=-1)
                     assert neuron.get_s_stab(neuron1) == 1.2333, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1.2333."
 
 
@@ -1275,11 +1312,11 @@ class Neuron:
                     layer1[1].spike = False
                     layer1[2].spike = True
                     neuron.forward()
-                    error = -10 
+                    error = -10 # error will be decreased 10 times (10 cycles)
                     neuron.reinforcement(error=error)
                     assert neuron.get_s_stab(layer1[0]) == 7, f"Stability of weight of connection 1 is {neuron.get_s_stab(layer1[0])} incorrect. It should be 7."
                     assert neuron.get_s_stab(layer1[1]) == 7, f"Stability of weight of connection 2 is {neuron.get_s_stab(layer1[1])} incorrect. It should be 7."
-                    assert neuron.get_s_stab(layer1[2]) == 6.9821, f"Stability of weight of connection 3 is {neuron.get_s_stab(layer1[2])} incorrect. It should be 6.9821"
+                    assert neuron.get_s_stab(layer1[2]) == 6.8174, f"Stability of weight of connection 3 is {neuron.get_s_stab(layer1[2])} incorrect. It should be 6.9821"
 
                     
 
