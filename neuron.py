@@ -1519,6 +1519,59 @@ class Neuron:
                 passed = False
             return passed
 
+        @staticmethod
+        def simplenet():
+            try:
+                # create small net with 3 layers an 2 neurons in each layer
+                layer1 = [Neuron(0) for i in range(2)]
+                layer2 = [Neuron(1) for i in range(2)]
+                layer3 = [Neuron(2) for i in range(2)]
+                # connect neurons of second layer to neurons of first layer
+                for neuron in layer1:
+                    for neuron2 in layer2:
+                        neuron2.connect(neuron)
+                for neuron in layer2:
+                    for neuron2 in layer3:
+                        neuron2.connect(neuron)
+                # set properties
+                for neuron in layer1+layer2+layer3:
+                    neuron.set_properties(threshold=50, refractory_period=0, leakage=0)
+                # emulate spike in neurons of first layer
+                for n in layer1:
+                    n.input = 100
+                # set weights
+                for n in layer2:
+                    for conn in n.connections:
+                        conn['weight'] = 50
+                    n.threshold = 100
+
+                for n in layer3:
+                    for conn in n.connections:
+                        conn['weight'] = 40
+                    n.threshold = 100
+                
+                # forwarding
+                for n in layer1+layer2+layer3:
+                    n.forward()
+
+                for n in layer1:
+                    assert n.get_output() == True, f"Output of neuron is incorrect. It should be True."
+
+                for n in layer2:
+                    assert n.get_output() == True, f"Output of neuron is incorrect. It should be True."
+                    
+                for n in layer3:
+                    assert n.get_output() == False, f"Output of neuron is incorrect. It should be False."
+                
+                # If there are no assertion errors, the test passed
+                Neuron.Test.print_test_result(test_name="simplenet", test_passed=True)
+                passed = True
+            except AssertionError as e:
+                Neuron.Test.print_test_result(test_name="simplenet", test_passed=False)
+                Neuron.Test.print_error_message(error_message=str(e))
+                passed = False
+            return passed
+            
 
         # Run all tests
         @staticmethod
@@ -1541,6 +1594,7 @@ class Neuron:
             if not Neuron.Test.reinforcement(): all_passed = False
             if not Neuron.Test.cooperation(): all_passed = False
             if not Neuron.Test.recursive_learning(): all_passed = False
+            if not Neuron.Test.simplenet(): all_passed = False
 
             GREEN = '\033[92m'
             RED = '\033[91m'
