@@ -237,7 +237,8 @@ class Neuron:
         """
         Accumulate input from all connections.
         """
-        self.input = 0
+        if self.layer_dept != 0: # 0 is input layer
+            self.input = 0
         for connection in self.connections:
             # ttl processing old inputs
             if connection['ttl'] > 0:
@@ -1563,9 +1564,87 @@ class Neuron:
 
     class Simulation:
         """
-        Aimed at testing the neuron class in the context of the network, environment, other classes, features, efficiency measurements, etc.
+        Aimed at testing the neuron class in the context of the network dinamyc, environment, cooperation, features, efficiency measurements, etc.
         """
-        pass
+
+        class Brain:
+            """
+            Neural network which will be used as brain of snake entity.
+            """
+            def __init__(self, topology=[], connections_type ='full'):
+                # """ Topology of network is a list of numbers of neurons in layers. First element of list is number of sensors, last element is number of output neurons.
+                #     [N-sensors, N-hidden1, N-hidden2, ..., N-output]
+                # """
+                # # list comprehension to create layers of neurons
+                # self.layer = [[Neuron(layer_dept=i) for i in range(layer_size)] for layer_size in topology]
+                # # print topology as table
+                # print('\n\n')
+                # print(f'Topology of network: in-->{topology}<--out')
+                # print('-------------------')
+                # for i, layer in enumerate(self.layer):
+                #     print(f'Layer {i}:', f'N({len(layer)}) \t', 'n '*len(layer))
+                
+                # # connect neurons
+                # if connections_type == 'full':
+                #     for i, layer in enumerate(self.layer):
+                #         if i == 0:
+                #             continue
+                #         for neuron in layer:
+                #             for neuronin_in_previous_layer in self.layer[i-1]:
+                #                 neuron.connect(neuronin_in_previous_layer)
+                # #elif:
+                # else:
+                #     pass
+                
+                # # set input properties
+                # for neuron in self.layer[0]:
+                #     neuron.set_properties(threshold=1, refractory_period=0, leakage=0)
+                #     print(neuron, neuron.threshold, neuron.refractory_period, neuron.leakage)
+                
+                # # set hidden properties
+                pass # TODO
+
+            def input(self, input:list):
+                """
+                Set input for sensors.
+                """
+                # check if input is correct
+                assert len(input) == len(self.layer[0]), f"Input is incorrect. It should be {len(self.layer[0])} elements."
+                # set input for sensors
+                for i, neuron in enumerate(self.layer[0]):
+                    neuron.input = input[i]
+            
+            def forward(self):
+                """
+                Forwarding of network.
+                """
+                for layer in self.layer:
+                    for neuron in layer:
+                        neuron.forward()
+                        print('neuron props', 'v_m', neuron.v_m, neuron.spike)
+            
+            def output(self):
+                """
+                Get output of network.
+                """
+                return [neuron.get_output() for neuron in self.layer[-1]]
+
+        class SnakeEntity:
+            """
+            Emulates snake entity in primitive environment of classic snake game.
+            Realization through incapsulation of 1. brain(AI), 2. snake game, and 3th is connector between them.
+            """
+            class SnakeGame:
+                """
+                Snake and environment.
+                """
+                pass
+
+            class Connector:
+                """
+                Connector between snake game and brain.
+                """
+                pass
 
     class Benchmark:
         """
@@ -1583,3 +1662,22 @@ class Neuron:
 if __name__ == "__main__":
     # Run the test
     Neuron.Test.run_all_tests()
+    # brain = Neuron.Simulation.Brain(topology=[2, 1])
+    # #set hidden weights as 10
+    # brain.layer[1][0].set_weight_and_ttl(brain.layer[0][0], weight=10)
+
+    # print('\nPress Enter to continue... (input is [1, 1])')
+    # brain.input([10, 10])
+
+    # print('\nsensors input:', [neuron.input for neuron in brain.layer[0]])
+    # print('v_m:', [neuron.v_m for neuron in brain.layer[0]])
+    # print('input spikes:', [neuron.spike for neuron in brain.layer[0]])
+
+    # print('\nforwarding...\n')
+    # brain.forward()
+    
+    # print('\nsensors input:', [neuron.input for neuron in brain.layer[0]])
+    # print('v_m:', [neuron.v_m for neuron in brain.layer[0]])
+    # print('input spikes:', [neuron.spike for neuron in brain.layer[0]])
+
+    # print('\noutput spikes:', brain.output())
