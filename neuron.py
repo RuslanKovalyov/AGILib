@@ -201,22 +201,24 @@ class Neuron:
                 return connection['s_stab']
         return None
 
-    def add_s_stab(self, target_neuron, positive=True):
+    def add_s_stab(self, target_neuron, stab_error):
         """
-        # TODO: for now dependence of s_stab to error val not implemented ( i call the function in cycle for error times ). NOTE need to implement it here and remove cycle from learning function.
-
         * Effect on involved connections (conn.spike=True) only.
+
+        it work in cycle with progressive value ( stab_error used as cycle counter and can be negative (abs(stab_error))
         
         Add s_stab of connection to target neuron in negative geometric progression.
         """
-        for connection in self.connections:
-            if connection['neuron'] == target_neuron:
-                if positive:
-                    s = round( connection['s_stab'] + (1/((connection['s_stab']+1)*connection['s_stab'])), self.rounding) # the higher the number, the slower it increases
-                else:
-                    s = round( connection['s_stab'] - (1/((connection['s_stab']+1)*connection['s_stab'])), self.rounding) # the higher the number, the slower it decreases
-                connection['s_stab'] = min(100, max(1, s)) # boundary checks min=1, max=100
-                break
+        if stab_error != 0: # need in case of stab_error = 0.xxxx
+            for _ in range(max(1, abs(round(stab_error)))):
+                for connection in self.connections:
+                    if connection['neuron'] == target_neuron:
+                        if stab_error > 0:
+                            s = round( connection['s_stab'] + (1/((connection['s_stab']+1)*connection['s_stab'])), self.rounding) # the higher the number, the slower it increases
+                        else:
+                            s = round( connection['s_stab'] - (1/((connection['s_stab']+1)*connection['s_stab'])), self.rounding) # the higher the number, the slower it decreases
+                        connection['s_stab'] = min(100, max(1, s)) # boundary checks min=1, max=100
+                        break
     
     def get_output_history(self):
         """
@@ -336,7 +338,7 @@ class Neuron:
  
         # one epoch learning without long associations of output history (one cycle only)
         if error != 0:
-            stab = True if error > 0 else False
+            stab = error
             # invert error if self output is False
             if self.spike is False:
                 error = -error
@@ -345,10 +347,7 @@ class Neuron:
                 # separation of connects as involv / without spike
                 if connect.get_output() == True:
                     self.add_weight(connect, error/self.get_s_stab(connect))
-
-                    for i in range(abs(round(error))):
-                        # change stability of involved connections (for cycle make stability dependent on error)
-                        self.add_s_stab(connect, positive=stab)
+                    self.add_s_stab(connect, stab_error=stab)
         
         # TODO: Assative learning with long associations of output history (several cycles)
 
@@ -827,20 +826,20 @@ class Neuron:
                 assert connection_s_stab == 1, "Connection s_stab is incorrect."
 
                 # increment s_stab of connection
-                neuron2.add_s_stab(neuron1, positive=True)
+                neuron2.add_s_stab(neuron1, stab_error=1)
                 assert neuron2.get_s_stab(neuron1) == 1.5, "Connection s_stab is incorrect."
-                neuron2.add_s_stab(neuron1, positive=True)
+                neuron2.add_s_stab(neuron1, stab_error=1)
                 assert neuron2.get_s_stab(neuron1) == 1.7667, "Connection s_stab is incorrect."
 
                 # decrement s_stab of connection
-                neuron2.add_s_stab(neuron1, positive=False)
+                neuron2.add_s_stab(neuron1, stab_error=-1)
                 assert neuron2.get_s_stab(neuron1) == 1.5621, "Connection s_stab is incorrect."
-                neuron2.add_s_stab(neuron1, positive=False)
+                neuron2.add_s_stab(neuron1, stab_error=-1)
                 assert neuron2.get_s_stab(neuron1) == 1.3122, "Connection s_stab is incorrect."
-                neuron2.add_s_stab(neuron1, positive=False)
+                neuron2.add_s_stab(neuron1, stab_error=-1)
                 assert neuron2.get_s_stab(neuron1) == 1, "Connection s_stab is incorrect."
                 # stab cant be less than 1
-                neuron2.add_s_stab(neuron1, positive=False)
+                neuron2.add_s_stab(neuron1, stab_error=-1)
                 assert neuron2.get_s_stab(neuron1) == 1, "Connection s_stab is incorrect."
                 
 
@@ -887,6 +886,24 @@ class Neuron:
                 neuron2.reinforcement(error=-1)
                 assert neuron2.get_s_stab(neuron1) == 1, "Connection s_stab is incorrect."
 
+                # check cycling with error < 1 ( 0.x ). min value of counter will be set to 1/-1 
+                neuron2.set_s_stab(neuron1, s_stab=1)
+                neuron1.spike = True
+                neuron2.reinforcement(error=0.5)
+                assert neuron2.get_s_stab(neuron1) == 1.5, f"Connection s_stab is incorrect. {neuron2.get_s_stab(neuron1)}"
+
+                # error 1.4 in cycling same like 1
+                neuron2.set_s_stab(neuron1, s_stab=1)
+                neuron1.spike = True
+                neuron2.reinforcement(error=1.4)
+                assert neuron2.get_s_stab(neuron1) == 1.5, f"Connection s_stab is incorrect. {neuron2.get_s_stab(neuron1)}"
+
+                # error 1.6 in cycling same like 2
+                neuron2.set_s_stab(neuron1, s_stab=1)
+                neuron1.spike = True
+                neuron2.reinforcement(error=1.6)
+                assert neuron2.get_s_stab(neuron1) == 1.7667, f"Connection s_stab is incorrect. {neuron2.get_s_stab(neuron1)}"
+
 
                     
                 # If there are no assertion errors, the test passed
@@ -927,7 +944,7 @@ class Neuron:
                 assert connected, "Failed to connect neuron2 to neuron1."
                 
                 # Add s_stab of connection
-                neuron2.add_s_stab(neuron1)
+                neuron2.add_s_stab(neuron1, stab_error=1)
 
                 # Check if s_stab is set correctly
                 for conn in neuron2.connections:
@@ -938,7 +955,7 @@ class Neuron:
                         raise AssertionError("Failed to set s_stab of connection.")
                 
                 # Add s_stab of connection
-                neuron2.add_s_stab(neuron1)
+                neuron2.add_s_stab(neuron1, stab_error=1)
 
                 # Check if s_stab is set correctly
                 for conn in neuron2.connections:
@@ -949,7 +966,7 @@ class Neuron:
                         raise AssertionError("Failed to set s_stab of connection.")
                 
                 # Add s_stab of connection
-                neuron2.add_s_stab(neuron1)
+                neuron2.add_s_stab(neuron1, stab_error=1)
 
                 # Check if s_stab is set correctly
                 for conn in neuron2.connections:
@@ -961,7 +978,7 @@ class Neuron:
                 
                 # Add s_stab of connection with 10 cycles
                 for i in range(10):
-                    neuron2.add_s_stab(neuron1)
+                    neuron2.add_s_stab(neuron1, stab_error=1)
                 # Check if s_stab is set correctly
                 for conn in neuron2.connections:
                     if conn['neuron'] == neuron1:
@@ -970,9 +987,9 @@ class Neuron:
                     else:
                         raise AssertionError("Failed to set s_stab of connection.")
                 
-                # decrease s_stab of connection with 5 cycles
+                # decrease s_stab of connection with cycles
                 for i in range(10):
-                    neuron2.add_s_stab(neuron1, positive=False)
+                    neuron2.add_s_stab(neuron1, stab_error=-1)
                 # Check if s_stab is set correctly
                 for conn in neuron2.connections:
                     if conn['neuron'] == neuron1:
@@ -984,7 +1001,7 @@ class Neuron:
                 #set value of s_stab as 2
                 neuron2.set_s_stab(neuron1, s_stab=2)
                 # decrease s_stab
-                neuron2.add_s_stab(neuron1, positive=False)
+                neuron2.add_s_stab(neuron1, stab_error=-1)
                 # Check if s_stab is set correctly
                 for conn in neuron2.connections:
                     if conn['neuron'] == neuron1:
@@ -996,7 +1013,7 @@ class Neuron:
                 #set value of s_stab as 20
                 neuron2.set_s_stab(neuron1, s_stab=20)
                 # decrease s_stab
-                neuron2.add_s_stab(neuron1, positive=False)
+                neuron2.add_s_stab(neuron1, stab_error=-1)
                 # Check if s_stab is set correctly
                 for conn in neuron2.connections:
                     if conn['neuron'] == neuron1:
@@ -1270,29 +1287,29 @@ class Neuron:
                     # emulate spike in neurons of first layer
                     neuron1.spike = True
                     neuron2.spike = True
-                    neuron.add_s_stab(neuron1)
-                    neuron.add_s_stab(neuron2)
+                    neuron.add_s_stab(neuron1, stab_error=1)
+                    neuron.add_s_stab(neuron2, stab_error=1)
                     assert neuron.get_s_stab(neuron1) == 1.5, f"Stability of weight {neuron.get_s_stab(neuron1)} of connection 1 is incorrect. It should be 1.5."
                     assert neuron.get_s_stab(neuron2) == 1.5, f"Stability of weight {neuron.get_s_stab(neuron2)}of connection 2 is incorrect. It should be 1.5."
-                    neuron.add_s_stab(neuron1)
-                    neuron.add_s_stab(neuron2)
+                    neuron.add_s_stab(neuron1, stab_error=1)
+                    neuron.add_s_stab(neuron2, stab_error=1)
                     assert neuron.get_s_stab(neuron1) == 1.7667, f"Stability of weight of connection 1 is incorrect. It should be 1.7667."
                     assert neuron.get_s_stab(neuron2) == 1.7667, f"Stability of weight of connection 2 is incorrect. It should be 1.7667."
                     # negative error
                     neuron.reinforcement(error=-1)
-                    neuron.add_s_stab(neuron1, positive=False)
-                    neuron.add_s_stab(neuron2, positive=False)
+                    neuron.add_s_stab(neuron1, stab_error=-1)
+                    neuron.add_s_stab(neuron2, stab_error=-1)
                     assert neuron.get_s_stab(neuron1) == 1.3122, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1.3122 ."
                     assert neuron.get_s_stab(neuron2) == 1.3122, f"Stability of weight of connection 2 is {neuron.get_s_stab(neuron2)} incorrect. It should be 1.3122 ."
                     # change just one connection
-                    neuron.add_s_stab(neuron1, positive=False)
+                    neuron.add_s_stab(neuron1, stab_error=-1)
                     assert neuron.get_s_stab(neuron1) == 1, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1.3122."
                     assert neuron.get_s_stab(neuron2) == 1.3122, f"Stability of weight of connection 2 is {neuron.get_s_stab(neuron2)} incorrect. It should be 1.3122."
                     # check it for min value (should be 1)
                     neuron.set_s_stab(neuron1, s_stab=1)
                     neuron.set_s_stab(neuron2, s_stab=1)
-                    neuron.add_s_stab(neuron1, positive=False)
-                    neuron.add_s_stab(neuron2, positive=False)
+                    neuron.add_s_stab(neuron1, stab_error=-1)
+                    neuron.add_s_stab(neuron2, stab_error=-1)
                     assert neuron.get_s_stab(neuron1) == 1, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1."
                     neuron.reinforcement(error=1)
                     assert neuron.get_s_stab(neuron1) == 1.5, f"Stability of weight of connection 1 is {neuron.get_s_stab(neuron1)} incorrect. It should be 1.5."
