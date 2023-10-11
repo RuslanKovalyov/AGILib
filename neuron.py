@@ -240,7 +240,7 @@ class Neuron:
         """
         Accumulate input from all connections.
         """
-        if self.layer_dept != 0: # 0 is input layer
+        if self.layer_dept != 0: # headen layer
             self.input = 0
         for connection in self.connections:
             # ttl processing old inputs
@@ -274,8 +274,7 @@ class Neuron:
             self.input = 0
 
             # Step function with active potential threshold and refractory period. TODO: more activation functions
-            active_potential = self.threshold * self.sensitivity['val'] / 100
-
+            active_potential = self.threshold * (self.sensitivity['val'] / 100)
             if self.v_m >= active_potential and self.refractory_period_counter == 0:
                 if self.signal_out_type_mode == "binary":
                     self.spike = True
@@ -286,7 +285,10 @@ class Neuron:
                     # map signal to range 0-100 by min-max normalization
                     normaliz_signal = (signal - norm_min) / (norm_max - norm_min + 1) * 100
                     self.spike = max(1, min(100, round(normaliz_signal, self.rounding)))
-                self.v_m = round(self.rest + (self.reset_ratio['val'] * (self.threshold - self.rest)), self.rounding)
+                if self.layer_dept != 0: # headen layer
+                    self.v_m = round(self.rest + (self.reset_ratio['val'] * (self.threshold - self.rest)), self.rounding)
+                else: # input layer
+                    self.v_m = 0
                 self.refractory_period_counter = self.refractory_period['val']
                 self.sensitivity['val'] += self.sensitivity_adjust_rate['val']
 
@@ -334,7 +336,6 @@ class Neuron:
     
 
     # Learning methods
-
     def reinforcement(self, error): # one neuron learning
         # work only with involved connections (conn.spike=True)
         """
@@ -1134,6 +1135,9 @@ class Neuron:
             return passed
 
         @staticmethod
+        def reset_ratio():
+            pass #TODO: have issues
+        @staticmethod
         def process_activation():
             """
             Test for the process_activation() method of Neuron class.
@@ -1355,6 +1359,46 @@ class Neuron:
                     assert neuron.get_s_stab(layer1[1]) == 7, f"Stability of weight of connection 2 is {neuron.get_s_stab(layer1[1])} incorrect. It should be 7."
                     assert neuron.get_s_stab(layer1[2]) == 6.8174, f"Stability of weight of connection 3 is {neuron.get_s_stab(layer1[2])} incorrect. It should be 6.9821"
 
+                    # check learning recursive_learning process with 2 layers, one hidden layer only (Layer2)
+                    layer1 = [Neuron(layer_dept=0, signal_out_type_mode='binary') for i in range(2)]
+                    layer2 = [Neuron(layer_dept=1, signal_out_type_mode='binary') for i in range(1)]
+                    # set initial properties
+                    for n in layer1:
+                        # input layer
+                        n.set_properties(threshold=0.001, refractory_period=0, leakage=100)
+                    for n in layer2:
+                        # hidden layer
+                        n.set_properties(threshold=25, refractory_period=0, leakage=0)
+                    # connect neurons of second layer to neurons of first layer
+                    for neuron1 in layer1:
+                        for neuron2 in layer2:
+                            neuron2.connect(neuron1)
+                    # set weight of connections for connections 1 and 2. Connection 1 has weight -20 and connection 2 has weight 20
+                    neuron1 = layer1[0]
+                    neuron2 = layer1[1]
+                    neuronH = layer2[0]
+                    neuronH.set_weight_and_ttl(neuron1, weight=25)
+                    neuronH.set_weight_and_ttl(neuron2, weight=-20)
+                    # emulate inputs
+                    neuron1.input = 1
+                    neuron2.input = 1
+                    # forwarding L1
+                    for neuron in layer1:
+                        neuron.forward()
+                    # forwarding L2
+                    for neuron in layer2:
+                        neuron.forward()
+                    # print('v_m', neuronH.v_m)
+                    # print('self.spike', neuronH.spike)
+                    assert neuronH.spike == False, f"Spike of neuron is incorrect. It should be False."
+                    # learning
+                    neuronH.reinforcement(error=-10)
+                    # forwarding L2
+                    for neuron in layer2:
+                        neuron.forward()
+                    # print('v_m', neuronH.v_m)
+                    # print('self.spike', neuronH.spike)
+                    assert neuronH.spike == True, f"Spike of neuron is incorrect. It should be True."
                     
 
                 # If there are no assertion errors, the test passed
@@ -1527,7 +1571,47 @@ class Neuron:
                             # print(conn['weight'])
                             assert conn['weight'] >1, f"Weight of connection ({conn['weight']}) is incorrect. It should be 1."
                 
-                
+
+                # check recursive_learning process with 2 layers, one hidden layer only (Layer2)
+                layer1 = [Neuron(layer_dept=0, signal_out_type_mode='binary') for i in range(2)]
+                layer2 = [Neuron(layer_dept=1, signal_out_type_mode='binary') for i in range(1)]
+                # set initial properties
+                for n in layer1:
+                    # input layer
+                    n.set_properties(threshold=0.001, refractory_period=0, leakage=100)
+                for n in layer2:
+                    # hidden layer
+                    n.set_properties(threshold=25, refractory_period=0, leakage=0)
+                # connect neurons of second layer to neurons of first layer
+                for neuron1 in layer1:
+                    for neuron2 in layer2:
+                        neuron2.connect(neuron1)
+                # set weight of connections for connections 1 and 2. Connection 1 has weight -20 and connection 2 has weight 20
+                neuron1 = layer1[0]
+                neuron2 = layer1[1]
+                neuronH = layer2[0]
+                neuronH.set_weight_and_ttl(neuron1, weight=20)
+                neuronH.set_weight_and_ttl(neuron2, weight=-5)
+                # emulate inputs
+                neuron1.input = 1
+                neuron2.input = 1
+                # forwarding L1
+                for neuron in layer1:
+                    neuron.forward()
+                # forwarding L2
+                for neuron in layer2:
+                    neuron.forward()
+                # print('v_m', neuronH.v_m)
+                # print('self.spike', neuronH.spike)
+                assert neuronH.spike == False, f"Spike of neuron is incorrect. It should be False."
+                # learning
+                neuronH.recursive_learning(error=-10)
+                # forwarding L2
+                for neuron in layer2:
+                    neuron.forward()
+                # print('v_m', neuronH.v_m)
+                # print('self.spike', neuronH.spike)
+                assert neuronH.spike == True, f"Spike of neuron is incorrect. It should be True."
 
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="recursive_learning", test_passed=True)
@@ -1594,8 +1678,7 @@ class Neuron:
                 Neuron.Test.print_test_result(test_name="simplenet", test_passed=False)
                 Neuron.Test.print_error_message(error_message=str(e))
                 passed = False
-            return passed
-            
+            return passed  
 
         # Run all tests
         @staticmethod
@@ -1644,17 +1727,17 @@ class Neuron:
         """
         Aimed at testing the neuron class in the context of the network dinamyc, environment, cooperation, features, efficiency measurements, etc.
         """
-
-        class Brain:
+        class NN:
             """
             Neural network which will be used as brain of snake entity.
             """
-            def __init__(self, topology=[], connections_type ='full'):
+            def __init__(self, topology=[], connections_type ='full', signal_out_type_mode='binary' ):
                 """ Topology of network is a list of numbers of neurons in layers. First element of list is number of sensors, last element is number of output neurons.
                     [N-sensors, N-hidden1, N-hidden2, ..., N-output]
                 """
                 # list comprehension to create layers of neurons
-                self.layer = [[Neuron(layer_dept=depth, signal_out_type_mode='numeric' ) for i in range(layer_size)] for depth, layer_size in enumerate(topology)]
+                self.layer = [[Neuron(layer_dept=depth, signal_out_type_mode=signal_out_type_mode) for i in range(layer_size)] for depth, layer_size in enumerate(topology)]
+                
                 # print topology as table
                 print('\n\n')
                 print(f'Topology of network: in-->{topology}<--out')
@@ -1670,21 +1753,21 @@ class Neuron:
                         for neuron in layer:
                             for neuronin_in_previous_layer in self.layer[i-1]:
                                 neuron.connect(neuronin_in_previous_layer)
+
+
                 #elif:
                 else:
                     pass
                 
                 # set input properties
-                input_sensetivity = 1
                 for neuron in self.layer[0]:
-                    neuron.set_properties(threshold=input_sensetivity, refractory_period=0, leakage=0)
+                    neuron.set_properties(threshold=1, refractory_period=0, leakage=100)
                 
-                # set hidden properties
-                # weights = 10, threshold = 50
-                pass
+                #set hidden properties
+                for layer in self.layer[1:-1]:
+                    for neuron in layer:
+                        neuron.set_properties(threshold=25, refractory_period=0, leakage=0)
                 
-
-
             def input(self, input:list):
                 """
                 Set input for sensors.
@@ -1700,45 +1783,19 @@ class Neuron:
                 Forwarding of network.
                 """
                 for layer in self.layer:
-                    print('\nlayer LEN ------------- >', len(layer))
                     for neuron in layer:
                         neuron.forward()
-                        print('neuron props: v_m', neuron.v_m, '| spike', neuron.spike)
             
             def output(self):
                 """
                 Get output of network.
                 """
                 return [neuron.get_output() for neuron in self.layer[-1]]
-            
-            def train_with_teacher(self, teacher:list):
-                """
-                Train network with teacher.
-                were teacher is a list of correct answers for each output neuron in every cycle
-                
-                *output of neuron can bee Boolean or Number ( depends on signal_out_type_mode of neuron )
 
-                """
-                # check if teacher is correct
-                assert len(teacher) == len(self.layer[-1]), f"Teacher is incorrect. It should be {len(self.layer[-1])} elements."
-                
-                # generate error signal for each output neuron
-                errors = []
-                for i, neuron in enumerate(self.layer[-1]):
-                    if neuron.signal_out_type_mode == 'binary':
-                        pass
-                    elif neuron.signal_out_type_mode == 'numeric':
-                        pass
-                
-
-
-                
-                # train network
-            
         class SnakeEntity:
             """
             Emulates snake entity in primitive environment of classic snake game.
-            Realization through incapsulation of 1. brain(AI), 2. snake game, and 3th is connector between them.
+            Realization through incapsulation of 1. brain(AI) - NN class, 2. snake game, and 3th is connector between them.
             """
             class SnakeGame:
                 """
@@ -1766,13 +1823,20 @@ class Neuron:
         pass
 
 if __name__ == "__main__":
-    # Run the test
+    # Run tests
     Neuron.Test.run_all_tests()
 
+    # Run simulation
+    brain = Neuron.Simulation.NN(topology=[4,2])
 
-    brain = Neuron.Simulation.Brain(topology=[10,20,25])
-    brain.input([1,10,1,50,1,40,1,20,1,2])
-    brain.forward()
+    # learning, etalon output [True, True, True, True]
+    for epoch in range(100):
+
+        brain.input([True, True, True, True])
+        brain.forward()
+
+        error_signal = 20 #random.randint(1, 100)
+        #brain.train_with_teacher([True, True], signal_out_type_mode='binary', learning_method='recursive_learning', error_signal = error_signal)
 
 
-    print('\noutput', brain.output(),'\n')
+    
