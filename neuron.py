@@ -11,6 +11,8 @@ class Neuron:
 
         self.min_max_weight = (-127, 127)
         self.min_max_ttl = (0, 255)
+        self.min_max_input = (-100, 100) #  max total input of neuron
+        self.min_max_v_m = (-100, 100) # stability of neuron membrane potential
         self.layer_dept = layer_dept # layer depth of neuron in network. Should be setted by network class. Used for cooperation mechanism  as caunter init, infinite recursion prevention.
 
         self.input = 0 # current sum of inputs, and old inputs eith ttl > 0
@@ -20,7 +22,7 @@ class Neuron:
 
         # Membrane properties
         self.rest = 0 # resting potential of v_membrane
-        self.threshold = 100 # action potential threshold
+        self.threshold = 25 # action potential threshold
         self.reset_ratio = {'val': 0.05, 'min': 0, 'max': 1 } # ratio of threshold to reset to. reset = rest + (reset_ratio * (threshold - rest)).
         self.v_m = 0 # current membrane potential
         self.leakage = {'val': 0.1, 'min': 0, 'max': 100} # leakage of membrane potential per tick in percent (%) of current v_m
@@ -35,6 +37,7 @@ class Neuron:
         # Mode properties
         self.type = "Hidden" # | Hidden | Sensor | Motor |
         self.activation_function = "step" # | step | sigmoid | Hyperbolic Tangent (Tanh) | Rectified Linear Unit (ReLU) | etc. | - NOTE: work with sensitivity + threshold
+        self.output_type_mode = "binary" # | binary | numeric | - NOTE: numeric output is not implemented yet and be used in various ways, for example, to control the speed of the robot's movement, etc.
         self.mode = "cycle-train" # | cycle-train | cycle | train |
 
         # Neurotransmitter properties
@@ -45,7 +48,7 @@ class Neuron:
         self.neurotransmitter_depletion_rate = {'val': 10, 'min': 0, 'max': self.neurotransmitter_level} # rate of neurotransmitter depletion per threshold
 
         # constants
-        self.rounding = 4 # rounding of float numbers like v_m, weight, etc.
+        self.rounding = 4 # rounding of float numbers like v_m, weight, spike, etc.
         
     def set_properties(self, rest=None, threshold=None, reset_ratio=None, leakage=None, sensitivity=None, sensitivity_adjust_rate=None, sensitivity_restore_rate=None, refractory_period=None, layer_dept=None):
         """
@@ -248,6 +251,8 @@ class Neuron:
                 pass # TODO: ttl processing now it's just a dummy placeholder! Must be Ratio of weight to timer and fade-out.
             elif connection['neuron'].get_output():
                 self.input += connection['weight'] * connection['neuron'].get_output()
+            #input bounded by min_max_input
+            self.input = min(self.min_max_input[1], max(self.min_max_input[0], self.input))
 
     def process_activation(self):
         """
@@ -264,19 +269,21 @@ class Neuron:
 
         if self.activation_function == "step":
             self.v_m += self.input
+            # v_m boundery checks
+            self.v_m = min(self.min_max_v_m[1], max(self.min_max_v_m[0], self.v_m))
             self.input = 0
 
             # Step function with active potential threshold and refractory period. TODO: more activation functions
             active_potential = self.threshold * self.sensitivity['val'] / 100
 
             if self.v_m >= active_potential and self.refractory_period_counter == 0:
-                self.spike = True
+                self.spike = max(1, min(100, round(self.v_m - active_potential, self.rounding)))
                 self.v_m = round(self.rest + (self.reset_ratio['val'] * (self.threshold - self.rest)), self.rounding)
                 self.refractory_period_counter = self.refractory_period['val']
                 self.sensitivity['val'] += self.sensitivity_adjust_rate['val']
 
             else: # parameters restoration
-                self.spike = False
+                self.spike = 0
                 if self.v_m > active_potential:  # if v_m is bigger than active_potential because of refractory period, it must be decreased to threshold
                     self.v_m = active_potential
                 self.v_m = round(self.v_m * (1 - self.leakage['val']/100), self.rounding) # leakage of membrane potential per tick in percent (%) of current v_m
@@ -346,7 +353,7 @@ class Neuron:
             for connect in self.connections:
                 connect = connect["neuron"]
                 # separation of connects as involv / without spike
-                if connect.get_output() == True:
+                if connect.get_output() != 0:
                     self.add_weight(connect, error/self.get_s_stab(connect))
                     self.add_s_stab(connect, stab_error=stab)
         
@@ -1257,12 +1264,11 @@ class Neuron:
                     # check reset_ratio change to 0,07, after spike v_m = 3.5
                     neuron.set_properties(reset_ratio=0.07)
                     neuron.forward()
-                    assert neuron.spike == True, f"Spike of neuron is incorrect. It should be True."
+                    assert neuron.spike == 9.97, f"Spike {neuron.spike} of neuron is incorrect. It should be 9.97."
                     
                     # check spike, output and output history after forwarding
-                    assert neuron.spike == True, f"Spike of neuron is incorrect. It should be False."
-                    assert neuron.get_output() == True, f"Output of neuron is incorrect. It should be True."
-                    assert neuron.output_history[-1] == True, f"Output history of neuron is incorrect. It should be True."
+                    assert neuron.get_output() == 9.97, f"Output {neuron.get_output()} of neuron is incorrect. It should be 9.97."
+                    assert neuron.output_history == [9.97], f"Output history {neuron.output_history} of neuron is incorrect. It should be [9,97,]."
                     assert len(neuron.output_history) == 1, f"Output history of neuron is incorrect. It should be 1."
 
 
@@ -1273,7 +1279,6 @@ class Neuron:
                     # reinforce checkinng
                     # provide error signal to neuron and check if weight of connection is changed
                     neuron.reinforcement(error=-5)
-                    assert neuron.get_output() == True, f"Output of neuron is incorrect. It should be False."
                     assert neuron.get_weight_and_ttl(neuron1)[0] == -25, f"Weight of connection 1 is incorrect. It should be -25."
                     assert neuron.get_weight_and_ttl(neuron2)[0] == 45, f"Weight of connection 2 is incorrect. It should be 45."
 
@@ -1536,18 +1541,20 @@ class Neuron:
                 # set properties
                 for neuron in layer1+layer2+layer3:
                     neuron.set_properties(threshold=50, refractory_period=0, leakage=0)
-                # emulate spike in neurons of first layer
+
+                # emulate inputs
                 for n in layer1:
-                    n.input = 100
+                    n.input = 1
+                    n.threshold = 1
                 # set weights
                 for n in layer2:
                     for conn in n.connections:
-                        conn['weight'] = 50
-                    n.threshold = 100
+                        conn['weight'] = 5
+                    n.threshold = 1
 
                 for n in layer3:
                     for conn in n.connections:
-                        conn['weight'] = 40
+                        conn['weight'] = 0
                     n.threshold = 100
                 
                 # forwarding
@@ -1555,13 +1562,13 @@ class Neuron:
                     n.forward()
 
                 for n in layer1:
-                    assert n.get_output() == True, f"Output of neuron is incorrect. It should be True."
+                    assert n.get_output() == 1, f"Output layer1 {n.get_output()} of neuron is incorrect. It should be 1."
 
                 for n in layer2:
-                    assert n.get_output() == True, f"Output of neuron is incorrect. It should be True."
+                    assert n.get_output() == 9, f"Output layer2 {n.get_output()} of neuron is incorrect. It should be 9."
                     
                 for n in layer3:
-                    assert n.get_output() == False, f"Output of neuron is incorrect. It should be False."
+                    assert n.get_output() == False, f"Output layer3 {n.get_output()}  of neuron is incorrect. It should be False."
                 
                 # If there are no assertion errors, the test passed
                 Neuron.Test.print_test_result(test_name="simplenet", test_passed=True)
@@ -1626,37 +1633,38 @@ class Neuron:
             Neural network which will be used as brain of snake entity.
             """
             def __init__(self, topology=[], connections_type ='full'):
-                # """ Topology of network is a list of numbers of neurons in layers. First element of list is number of sensors, last element is number of output neurons.
-                #     [N-sensors, N-hidden1, N-hidden2, ..., N-output]
-                # """
-                # # list comprehension to create layers of neurons
-                # self.layer = [[Neuron(layer_dept=i) for i in range(layer_size)] for layer_size in topology]
-                # # print topology as table
-                # print('\n\n')
-                # print(f'Topology of network: in-->{topology}<--out')
-                # print('-------------------')
-                # for i, layer in enumerate(self.layer):
-                #     print(f'Layer {i}:', f'N({len(layer)}) \t', 'n '*len(layer))
+                """ Topology of network is a list of numbers of neurons in layers. First element of list is number of sensors, last element is number of output neurons.
+                    [N-sensors, N-hidden1, N-hidden2, ..., N-output]
+                """
+                # list comprehension to create layers of neurons
+                self.layer = [[Neuron(layer_dept=depth ) for i in range(layer_size)] for depth, layer_size in enumerate(topology)]
+                # print topology as table
+                print('\n\n')
+                print(f'Topology of network: in-->{topology}<--out')
+                print('-------------------')
+                for i, layer in enumerate(self.layer):
+                    print(f'Layer {i}:', f'N({len(layer)}) \t', 'n '*len(layer))
                 
-                # # connect neurons
-                # if connections_type == 'full':
-                #     for i, layer in enumerate(self.layer):
-                #         if i == 0:
-                #             continue
-                #         for neuron in layer:
-                #             for neuronin_in_previous_layer in self.layer[i-1]:
-                #                 neuron.connect(neuronin_in_previous_layer)
-                # #elif:
-                # else:
-                #     pass
+                # connect neurons
+                if connections_type == 'full':
+                    for i, layer in enumerate(self.layer):
+                        if i == 0:
+                            continue
+                        for neuron in layer:
+                            for neuronin_in_previous_layer in self.layer[i-1]:
+                                neuron.connect(neuronin_in_previous_layer)
+                #elif:
+                else:
+                    pass
                 
-                # # set input properties
-                # for neuron in self.layer[0]:
-                #     neuron.set_properties(threshold=1, refractory_period=0, leakage=0)
-                #     print(neuron, neuron.threshold, neuron.refractory_period, neuron.leakage)
+                # set input properties
+                input_sensetivity = 1
+                for neuron in self.layer[0]:
+                    neuron.set_properties(threshold=input_sensetivity, refractory_period=0, leakage=0)
+                    print(neuron, neuron.threshold, neuron.refractory_period, neuron.leakage)
                 
-                # # set hidden properties
-                pass # TODO
+                # set hidden properties
+                pass
 
             def input(self, input:list):
                 """
@@ -1682,7 +1690,28 @@ class Neuron:
                 Get output of network.
                 """
                 return [neuron.get_output() for neuron in self.layer[-1]]
+            
+            def train_with_teacher(self, teacher:list):
+                """
+                Train network with teacher.
+                were teacher is a list of correct answers for each output neuron in every cycle
+                
+                *output of neuron can bee Boolean or Number ( depends on output_type_mode of neuron )
 
+                """
+                # check if teacher is correct
+                assert len(teacher) == len(self.layer[-1]), f"Teacher is incorrect. It should be {len(self.layer[-1])} elements."
+                
+                # generate error signal for each output neuron
+                errors = []
+                for i, neuron in enumerate(self.layer[-1]):
+                    if neuron.output_type_mode == 'binary':
+                        errors.append(teacher[i] - neuron.get_output())
+
+
+                
+                # train network
+            
         class SnakeEntity:
             """
             Emulates snake entity in primitive environment of classic snake game.
@@ -1716,22 +1745,11 @@ class Neuron:
 if __name__ == "__main__":
     # Run the test
     Neuron.Test.run_all_tests()
-    # brain = Neuron.Simulation.Brain(topology=[2, 1])
-    # #set hidden weights as 10
-    # brain.layer[1][0].set_weight_and_ttl(brain.layer[0][0], weight=10)
 
-    # print('\nPress Enter to continue... (input is [1, 1])')
-    # brain.input([10, 10])
 
-    # print('\nsensors input:', [neuron.input for neuron in brain.layer[0]])
-    # print('v_m:', [neuron.v_m for neuron in brain.layer[0]])
-    # print('input spikes:', [neuron.spike for neuron in brain.layer[0]])
+    brain = Neuron.Simulation.Brain(topology=[4, 10,10,4])
+    brain.input([0,0,1,1])
+    brain.forward()
 
-    # print('\nforwarding...\n')
-    # brain.forward()
-    
-    # print('\nsensors input:', [neuron.input for neuron in brain.layer[0]])
-    # print('v_m:', [neuron.v_m for neuron in brain.layer[0]])
-    # print('input spikes:', [neuron.spike for neuron in brain.layer[0]])
 
-    # print('\noutput spikes:', brain.output())
+    print('\noutput', brain.output(),'\n')
