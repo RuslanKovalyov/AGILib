@@ -1726,7 +1726,10 @@ class Neuron:
                 errors = []
                 for i, neuron in enumerate(self.layer[-1]):
                     if neuron.signal_out_type_mode == 'binary':
-                        errors.append(teacher[i] - neuron.get_output())
+                        pass
+                    elif neuron.signal_out_type_mode == 'numeric':
+                        pass
+                
 
 
                 
