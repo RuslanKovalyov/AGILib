@@ -2,7 +2,7 @@ import random
 
 class Neuron:
     """ 0 layer is for input neurons (sensors only layer), have less core processing."""
-    def __init__(self, layer_dept = None):
+    def __init__(self, layer_dept = None, signal_out_type_mode = "binary"):
         # Connection properties
         self.connections = [] # list of dicts [ {'neuron': neuron, 'weight': weight, 'ttl': ttl, 's_stab': s_stab}, ...]
         # "ttl" is "time of transmitter leakage", or Time-Transmitter-Live (TTL) mechanism for synaptic weights, mimics the idea of short-term plasticity in biology.
@@ -17,7 +17,7 @@ class Neuron:
 
         self.input = 0 # current sum of inputs, and old inputs eith ttl > 0
         self.output_history = [] # append spike to this list every tick
-        self.rand_init = 50 # +/- random weight on initilization connection
+        self.rand_weight = 25 # +/- random weight on initilization connection
         self.rand_learning = 10 # +/- random weight adding in cooperation mechanism
 
         # Membrane properties
@@ -37,7 +37,7 @@ class Neuron:
         # Mode properties
         self.type = "Hidden" # | Hidden | Sensor | Motor |
         self.activation_function = "step" # | step | sigmoid | Hyperbolic Tangent (Tanh) | Rectified Linear Unit (ReLU) | etc. | - NOTE: work with sensitivity + threshold
-        self.output_type_mode = "binary" # | binary | numeric | - NOTE: numeric output is not implemented yet and be used in various ways, for example, to control the speed of the robot's movement, etc.
+        self.signal_out_type_mode = signal_out_type_mode # | binary | numeric | - NOTE: numeric output is not implemented yet and be used in various ways, for example, to control the speed of the robot's movement, etc.
         self.mode = "cycle-train" # | cycle-train | cycle | train |
 
         # Neurotransmitter properties
@@ -134,7 +134,7 @@ class Neuron:
         Connect to other neuron.
         """
         if weight == None:
-            weight = round(random.uniform(-self.rand_init, self.rand_init), self.rounding)
+            weight = round(random.uniform(-self.rand_weight, self.rand_weight), self.rounding)
         if s_stab == 0:
             s_stab = 1
             print('\033[93m',"s_stab can't be 0! (division by zero error), for now it's setted to 1.",'\033[0m')
@@ -277,13 +277,24 @@ class Neuron:
             active_potential = self.threshold * self.sensitivity['val'] / 100
 
             if self.v_m >= active_potential and self.refractory_period_counter == 0:
-                self.spike = max(1, min(100, round(self.v_m - active_potential, self.rounding)))
+                if self.signal_out_type_mode == "binary":
+                    self.spike = True
+                elif self.signal_out_type_mode == "numeric":
+                    norm_min = active_potential
+                    norm_max = self.min_max_v_m[1]-active_potential
+                    signal = self.v_m - active_potential
+                    # map signal to range 0-100 by min-max normalization
+                    normaliz_signal = (signal - norm_min) / (norm_max - norm_min + 1) * 100
+                    self.spike = max(1, min(100, round(normaliz_signal, self.rounding)))
                 self.v_m = round(self.rest + (self.reset_ratio['val'] * (self.threshold - self.rest)), self.rounding)
                 self.refractory_period_counter = self.refractory_period['val']
                 self.sensitivity['val'] += self.sensitivity_adjust_rate['val']
 
             else: # parameters restoration
-                self.spike = 0
+                if self.signal_out_type_mode == "binary":
+                    self.spike = False
+                elif self.signal_out_type_mode == "numeric":
+                    self.spike = 0
                 if self.v_m > active_potential:  # if v_m is bigger than active_potential because of refractory period, it must be decreased to threshold
                     self.v_m = active_potential
                 self.v_m = round(self.v_m * (1 - self.leakage['val']/100), self.rounding) # leakage of membrane potential per tick in percent (%) of current v_m
@@ -1264,11 +1275,14 @@ class Neuron:
                     # check reset_ratio change to 0,07, after spike v_m = 3.5
                     neuron.set_properties(reset_ratio=0.07)
                     neuron.forward()
-                    assert neuron.spike == 9.97, f"Spike {neuron.spike} of neuron is incorrect. It should be 9.97."
-                    
-                    # check spike, output and output history after forwarding
-                    assert neuron.get_output() == 9.97, f"Output {neuron.get_output()} of neuron is incorrect. It should be 9.97."
-                    assert neuron.output_history == [9.97], f"Output history {neuron.output_history} of neuron is incorrect. It should be [9,97,]."
+                    if neuron.signal_out_type_mode == 'binary':
+                        assert neuron.spike == True, f"Spike {neuron.spike} of neuron is incorrect. It should be True."
+                        assert neuron.spike == True, f"Spike {neuron.spike} of neuron is incorrect. It should be True."
+                        assert neuron.output_history == [True], f"Output history {neuron.output_history} of neuron is incorrect. It should be [True]."
+                    elif neuron.signal_out_type_mode == 'numeric':
+                        assert neuron.spike == 9.97, f"Spike {neuron.spike} of neuron is incorrect. It should be 9.97."
+                        assert neuron.get_output() == 9.97, f"Output {neuron.get_output()} of neuron is incorrect. It should be 9.97."
+                        assert neuron.output_history == [9.97], f"Output history {neuron.output_history} of neuron is incorrect. It should be [9,97,]."
                     assert len(neuron.output_history) == 1, f"Output history of neuron is incorrect. It should be 1."
 
 
@@ -1565,7 +1579,10 @@ class Neuron:
                     assert n.get_output() == 1, f"Output layer1 {n.get_output()} of neuron is incorrect. It should be 1."
 
                 for n in layer2:
-                    assert n.get_output() == 9, f"Output layer2 {n.get_output()} of neuron is incorrect. It should be 9."
+                    if neuron.signal_out_type_mode == 'binary':
+                        assert n.get_output() == True, f"Output layer2 {n.get_output()} of neuron is incorrect. It should be True."
+                    elif neuron.signal_out_type_mode == 'numeric':
+                        assert n.get_output() == 9, f"Output layer2 {n.get_output()} of neuron is incorrect. It should be 9."
                     
                 for n in layer3:
                     assert n.get_output() == False, f"Output layer3 {n.get_output()}  of neuron is incorrect. It should be False."
@@ -1637,7 +1654,7 @@ class Neuron:
                     [N-sensors, N-hidden1, N-hidden2, ..., N-output]
                 """
                 # list comprehension to create layers of neurons
-                self.layer = [[Neuron(layer_dept=depth ) for i in range(layer_size)] for depth, layer_size in enumerate(topology)]
+                self.layer = [[Neuron(layer_dept=depth, signal_out_type_mode='numeric' ) for i in range(layer_size)] for depth, layer_size in enumerate(topology)]
                 # print topology as table
                 print('\n\n')
                 print(f'Topology of network: in-->{topology}<--out')
@@ -1661,10 +1678,12 @@ class Neuron:
                 input_sensetivity = 1
                 for neuron in self.layer[0]:
                     neuron.set_properties(threshold=input_sensetivity, refractory_period=0, leakage=0)
-                    print(neuron, neuron.threshold, neuron.refractory_period, neuron.leakage)
                 
                 # set hidden properties
+                # weights = 10, threshold = 50
                 pass
+                
+
 
             def input(self, input:list):
                 """
@@ -1681,9 +1700,10 @@ class Neuron:
                 Forwarding of network.
                 """
                 for layer in self.layer:
+                    print('\nlayer LEN ------------- >', len(layer))
                     for neuron in layer:
                         neuron.forward()
-                        print('neuron props', 'v_m', neuron.v_m, neuron.spike)
+                        print('neuron props: v_m', neuron.v_m, '| spike', neuron.spike)
             
             def output(self):
                 """
@@ -1696,7 +1716,7 @@ class Neuron:
                 Train network with teacher.
                 were teacher is a list of correct answers for each output neuron in every cycle
                 
-                *output of neuron can bee Boolean or Number ( depends on output_type_mode of neuron )
+                *output of neuron can bee Boolean or Number ( depends on signal_out_type_mode of neuron )
 
                 """
                 # check if teacher is correct
@@ -1705,7 +1725,7 @@ class Neuron:
                 # generate error signal for each output neuron
                 errors = []
                 for i, neuron in enumerate(self.layer[-1]):
-                    if neuron.output_type_mode == 'binary':
+                    if neuron.signal_out_type_mode == 'binary':
                         errors.append(teacher[i] - neuron.get_output())
 
 
@@ -1747,8 +1767,8 @@ if __name__ == "__main__":
     Neuron.Test.run_all_tests()
 
 
-    brain = Neuron.Simulation.Brain(topology=[4, 10,10,4])
-    brain.input([0,0,1,1])
+    brain = Neuron.Simulation.Brain(topology=[10,20,25])
+    brain.input([1,10,1,50,1,40,1,20,1,2])
     brain.forward()
 
 
