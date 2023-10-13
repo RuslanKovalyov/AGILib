@@ -2,7 +2,7 @@ import random
 
 class Neuron:
     """ 0 layer is for input neurons (sensors only layer), have less core processing."""
-    def __init__(self, layer_dept = None, signal_out_type_mode = "binary"):
+    def __init__(self, layer_dept = None, signal_type = "binary", refactory_period=0):
         # Connection properties
         self.connections = [] # list of dicts [ {'neuron': neuron, 'weight': weight, 'ttl': ttl, 's_stab': s_stab}, ...]
         # "ttl" is "time of transmitter leakage", or Time-Transmitter-Live (TTL) mechanism for synaptic weights, mimics the idea of short-term plasticity in biology.
@@ -29,15 +29,15 @@ class Neuron:
         self.spike = False
         self.sensitivity = {'val': 100, 'min': 0, 'max': 200} # sensitivity of neuron - total input moultiplier. Normally is must be 100 (100%)
         self.sensitivity_normal = 100 # normal sensitivity of neuron in percent (%)
-        self.sensitivity_adjust_rate = {'val': -10, 'min': -100, 'max': 100} # sensitivity change per spike
+        self.sensitivity_adjust_rate = {'val': -0.001, 'min': -100, 'max': 100} # sensitivity change per spike
         self.sensitivity_restore_rate = {'val': 1, 'min': 0, 'max': 100} # sensitivity restoration per tick in percent (%) of current sensitivity
-        self.refractory_period = {'val': 1, 'min': 0, 'max': 1_000_000} # refractory period after spike in ticks (neuron is unresponsive)
+        self.refractory_period = {'val': refactory_period, 'min': 0, 'max': 1_000_000} # refractory period after spike in ticks (neuron is unresponsive)
         self.refractory_period_counter = 0 # current refractory period counter
 
         # Mode properties
         self.type = "Hidden" # | Hidden | Sensor | Motor |
         self.activation_function = "step" # | step | sigmoid | Hyperbolic Tangent (Tanh) | Rectified Linear Unit (ReLU) | etc. | - NOTE: work with sensitivity + threshold
-        self.signal_out_type_mode = signal_out_type_mode # | binary | numeric | - NOTE: numeric output is not implemented yet and be used in various ways, for example, to control the speed of the robot's movement, etc.
+        self.signal_type = signal_type # | binary | numeric | - NOTE: numeric output is not implemented yet and be used in various ways, for example, to control the speed of the robot's movement, etc.
         self.mode = "cycle-train" # | cycle-train | cycle | train |
 
         # Neurotransmitter properties
@@ -252,7 +252,7 @@ class Neuron:
             elif connection['neuron'].get_output():
                 self.input += connection['weight'] * connection['neuron'].get_output()
             #input bounded by min_max_input
-            self.input = min(self.min_max_input[1], max(self.min_max_input[0], self.input))
+            self.input = round(min(self.min_max_input[1], max(self.min_max_input[0], self.input)), self.rounding)
 
     def process_activation(self):
         """
@@ -269,16 +269,16 @@ class Neuron:
 
         if self.activation_function == "step":
             self.v_m += self.input
-            # v_m boundery checks
-            self.v_m = min(self.min_max_v_m[1], max(self.min_max_v_m[0], self.v_m))
             self.input = 0
+            # v_m boundery checks
+            self.v_m = round(min(self.min_max_v_m[1], max(self.min_max_v_m[0], self.v_m)), self.rounding)
 
             # Step function with active potential threshold and refractory period. TODO: more activation functions
-            active_potential = self.threshold * (self.sensitivity['val'] / 100)
+            active_potential = round(self.threshold * (self.sensitivity['val'] / 100), self.rounding)
             if self.v_m >= active_potential and self.refractory_period_counter == 0:
-                if self.signal_out_type_mode == "binary":
+                if self.signal_type == "binary":
                     self.spike = True
-                elif self.signal_out_type_mode == "numeric":
+                elif self.signal_type == "numeric":
                     norm_min = active_potential
                     norm_max = self.min_max_v_m[1]-active_potential
                     signal = self.v_m - active_potential
@@ -287,15 +287,13 @@ class Neuron:
                     self.spike = max(1, min(100, round(normaliz_signal, self.rounding)))
                 if self.layer_dept != 0: # headen layer
                     self.v_m = round(self.rest + (self.reset_ratio['val'] * (self.threshold - self.rest)), self.rounding)
-                else: # input layer
-                    self.v_m = 0
-                self.refractory_period_counter = self.refractory_period['val']
-                self.sensitivity['val'] += self.sensitivity_adjust_rate['val']
+                    self.refractory_period_counter = self.refractory_period['val']
+                    self.sensitivity['val'] += self.sensitivity_adjust_rate['val']
 
             else: # parameters restoration
-                if self.signal_out_type_mode == "binary":
+                if self.signal_type == "binary":
                     self.spike = False
-                elif self.signal_out_type_mode == "numeric":
+                elif self.signal_type == "numeric":
                     self.spike = 0
                 if self.v_m > active_potential:  # if v_m is bigger than active_potential because of refractory period, it must be decreased to threshold
                     self.v_m = active_potential
@@ -1199,7 +1197,7 @@ class Neuron:
                 neuron2.v_m = 10
                 neuron1.spike = False
                 neuron2.forward()
-                assert neuron2.v_m == 4.6, f"Neuron2 membrane potential {neuron2.v_m} incorrect. It should be 4.6."
+                assert neuron2.v_m == 5, f"Neuron2 membrane potential {neuron2.v_m} incorrect. It should be 5."
 
                 # print(neuron2.input, 'input', ' | ', neuron2.v_m, 'v_m', ' | ', neuron2.threshold, 'threshold', ' | ', neuron2.spike, 'spike', ' | ', neuron2.sensitivity, 'sensitivity', ' | ', neuron2.refractory_period_counter, 'refractory_period_counter', ' | ', neuron2.refractory_period, 'refractory_period')
 
@@ -1279,11 +1277,11 @@ class Neuron:
                     # check reset_ratio change to 0,07, after spike v_m = 3.5
                     neuron.set_properties(reset_ratio=0.07)
                     neuron.forward()
-                    if neuron.signal_out_type_mode == 'binary':
+                    if neuron.signal_type == 'binary':
                         assert neuron.spike == True, f"Spike {neuron.spike} of neuron is incorrect. It should be True."
                         assert neuron.spike == True, f"Spike {neuron.spike} of neuron is incorrect. It should be True."
                         assert neuron.output_history == [True], f"Output history {neuron.output_history} of neuron is incorrect. It should be [True]."
-                    elif neuron.signal_out_type_mode == 'numeric':
+                    elif neuron.signal_type == 'numeric':
                         assert neuron.spike == 9.97, f"Spike {neuron.spike} of neuron is incorrect. It should be 9.97."
                         assert neuron.get_output() == 9.97, f"Output {neuron.get_output()} of neuron is incorrect. It should be 9.97."
                         assert neuron.output_history == [9.97], f"Output history {neuron.output_history} of neuron is incorrect. It should be [9,97,]."
@@ -1360,8 +1358,8 @@ class Neuron:
                     assert neuron.get_s_stab(layer1[2]) == 6.8174, f"Stability of weight of connection 3 is {neuron.get_s_stab(layer1[2])} incorrect. It should be 6.9821"
 
                     # check learning recursive_learning process with 2 layers, one hidden layer only (Layer2)
-                    layer1 = [Neuron(layer_dept=0, signal_out_type_mode='binary') for i in range(2)]
-                    layer2 = [Neuron(layer_dept=1, signal_out_type_mode='binary') for i in range(1)]
+                    layer1 = [Neuron(layer_dept=0, signal_type='binary') for i in range(2)]
+                    layer2 = [Neuron(layer_dept=1, signal_type='binary') for i in range(1)]
                     # set initial properties
                     for n in layer1:
                         # input layer
@@ -1573,8 +1571,8 @@ class Neuron:
                 
 
                 # check recursive_learning process with 2 layers, one hidden layer only (Layer2)
-                layer1 = [Neuron(layer_dept=0, signal_out_type_mode='binary') for i in range(2)]
-                layer2 = [Neuron(layer_dept=1, signal_out_type_mode='binary') for i in range(1)]
+                layer1 = [Neuron(layer_dept=0, signal_type='binary') for i in range(2)]
+                layer2 = [Neuron(layer_dept=1, signal_type='binary') for i in range(1)]
                 # set initial properties
                 for n in layer1:
                     # input layer
@@ -1663,9 +1661,9 @@ class Neuron:
                     assert n.get_output() == 1, f"Output layer1 {n.get_output()} of neuron is incorrect. It should be 1."
 
                 for n in layer2:
-                    if neuron.signal_out_type_mode == 'binary':
+                    if neuron.signal_type == 'binary':
                         assert n.get_output() == True, f"Output layer2 {n.get_output()} of neuron is incorrect. It should be True."
-                    elif neuron.signal_out_type_mode == 'numeric':
+                    elif neuron.signal_type == 'numeric':
                         assert n.get_output() == 9, f"Output layer2 {n.get_output()} of neuron is incorrect. It should be 9."
                     
                 for n in layer3:
@@ -1731,12 +1729,13 @@ class Neuron:
             """
             Neural network which will be used as brain of snake entity.
             """
-            def __init__(self, topology=[], connections_type ='full', signal_out_type_mode='binary' ):
+            def __init__(self, topology=[], connections_type ='full', signal_type='binary' ):
                 """ Topology of network is a list of numbers of neurons in layers. First element of list is number of sensors, last element is number of output neurons.
                     [N-sensors, N-hidden1, N-hidden2, ..., N-output]
                 """
                 # list comprehension to create layers of neurons
-                self.layer = [[Neuron(layer_dept=depth, signal_out_type_mode=signal_out_type_mode) for i in range(layer_size)] for depth, layer_size in enumerate(topology)]
+                self.signal_type = signal_type
+                self.layer = [[Neuron(layer_dept=depth, signal_type=signal_type) for i in range(layer_size)] for depth, layer_size in enumerate(topology)]
                 
                 # print topology as table
                 print('\n\n')
@@ -1761,12 +1760,15 @@ class Neuron:
                 
                 # set input properties
                 for neuron in self.layer[0]:
-                    neuron.set_properties(threshold=1, refractory_period=0, leakage=100)
+                    neuron.set_properties(threshold=0.001, refractory_period=0, leakage=100)
                 
                 #set hidden properties
                 for layer in self.layer[1:-1]:
                     for neuron in layer:
                         neuron.set_properties(threshold=25, refractory_period=0, leakage=0)
+                        # set random weights for connections - 20 t0 20
+                        for conn in neuron.connections:
+                            conn['weight'] = random.randint(-20, 20)
                 
             def input(self, input:list):
                 """
@@ -1777,6 +1779,7 @@ class Neuron:
                 # set input for sensors
                 for i, neuron in enumerate(self.layer[0]):
                     neuron.input = input[i]
+                    neuron.spike = True
             
             def forward(self):
                 """
@@ -1791,7 +1794,143 @@ class Neuron:
                 Get output of network.
                 """
                 return [neuron.get_output() for neuron in self.layer[-1]]
+            
+            # TRAINING METHODS
+            
+            def cycle_teacher(self, teacher:list, context, learning_method = 'recursive_learning', error_power = None):
+                """
+                Train network with teacher.
+                were teacher is a list of correct answers for each output neuron in every cycle
+                "context" used for associative ( historical context is off/on) learning were every cycle is in/dependent from previous one (clear spikes and membrane potentials of all neurons every cycle if False, else - not clear)
+                
+                *output of neuron can bee Boolean or Number ( depends on signal_type of neurons )
 
+                """
+                # check if teacher is correct
+                assert len(teacher) == len(self.layer[-1]), f"Teacher is incorrect. It should be {len(self.layer[-1])} elements."
+                # signal type of teacher and nn must be the same
+                for s in teacher:
+                    assert type(s) == bool if self.signal_type == 'binary' else type(s) == float, f"Teacher is incorrect. It should be {len(self.layer[-1])} elements."
+                
+                # generate list of error signals for each output neuron by comparing teacher and output of neurons
+                if error_power == None:
+                    error_power = random.randint(0, 50)
+                learning_error = 0
+                if self.signal_type == 'binary':
+                    for i, neuron in enumerate(self.layer[-1]):
+                        # if teacher boolean value is same as output of neuron then error is positive number, else - negative, teacher is None (do't now) error is 0
+                        if teacher[i] == neuron.get_output():
+                            learning_error = error_power # positive error
+                        else:
+                            learning_error = -error_power # negative error
+                        # train
+                        if learning_method == 'recursive_learning':
+                            neuron.recursive_learning(error=learning_error)
+
+                        elif learning_method == 'reinforcement':
+                            neuron.reinforcement(error=learning_error)
+
+                        elif learning_method == 'cooperation':
+                            neuron.cooperation(error=learning_error)
+                        
+
+                elif self.signal_type == 'numeric':
+                    assert True, f"Numeric output is not implemented yet."
+                    pass # TODO: generate error signal for numeric output
+                
+                # NOTE: (NO CONTEXT LEARNING) reset spikes and membrane potentials of all neurons every cycle
+                if not context:
+                    for layer in self.layer:
+                        for neuron in layer:
+                            neuron.v_m = 0
+                
+            def cumulative_learning(self):
+                """
+                Train network with teacher and long term memory associations (cumulative learning).
+                """
+                pass
+            
+            # Testing methods
+            
+            @staticmethod
+            def no_context_teacher_learning():
+                                # Run simulation
+                brain = Neuron.Simulation.NN(topology=[4,5,5,4])
+                # set leakages of hidden layer to 100
+                for layer in brain.layer[1:-1]:
+                    for neuron in layer:
+                            neuron.set_properties(leakage=100)
+                            neuron.set_properties(reset_ratio=0)
+
+                # brain.layer[1][0].connections[0]['weight'] = 0
+                # brain.layer[2][0].connections[0]['weight'] = 0
+                for i in range(50):
+                    
+                    for epoch in range(i):
+                        print('\n\nepoch', epoch+1)
+                        brain.input([True, True, False, False])
+                        print('v_m', brain.layer[1][0].v_m)
+                        print('weight', brain.layer[1][0].connections[0]['weight'])
+                        brain.forward()
+                        print('forwarding')
+                        print('spike', brain.layer[1][0].spike)
+                        print('v_m', brain.layer[1][0].v_m)
+                        print('output', brain.output())
+                        print('stab', brain.layer[1][0].get_s_stab(brain.layer[0][0]))
+                        # learning, etalon output [True, False, False, True]
+                        brain.cycle_teacher([True, True, True, True], context=False, error_power=7, learning_method='recursive_learning')
+
+                    for epoch in range(i):
+                        print('\n\nepoch', epoch+1)
+                        brain.input([False, False, True, True])
+                        print('v_m', brain.layer[1][0].v_m)
+                        print('weight', brain.layer[1][0].connections[0]['weight'])
+                        brain.forward()
+                        print('forwarding')
+                        print('spike', brain.layer[1][0].spike)
+                        print('v_m', brain.layer[1][0].v_m)
+                        print('output', brain.output())
+                        print('stab', brain.layer[1][0].get_s_stab(brain.layer[0][0]))
+                        # learning, etalon output [True, False, False, True]
+                        brain.cycle_teacher([False, False, False, False], context=False, error_power=7, learning_method='recursive_learning')
+
+
+                print("\n\n---------------------------------------------------------")
+
+                print("---------------------------------------------------------")
+                brain.input([True, True, False, False])
+                brain.forward()
+                print('output', brain.output())
+                # reset all v_m in nn
+                for layer in brain.layer:
+                    for neuron in layer:
+                        neuron.v_m = 0
+
+                print("---------------------------------------------------------")
+                brain.input([False, False, True, True])
+                brain.forward()
+                print('output', brain.output())
+                for layer in brain.layer:
+                    for neuron in layer:
+                        neuron.v_m = 0
+
+                print("---------------------------------------------------------")
+                brain.input([True, True, False, False])
+                brain.forward()
+                print('output', brain.output())
+                for layer in brain.layer:
+                    for neuron in layer:
+                        neuron.v_m = 0
+
+                print("---------------------------------------------------------")
+                brain.input([False, False, True, True])
+                brain.forward()
+                print('output', brain.output())
+                for layer in brain.layer:
+                    for neuron in layer:
+                        neuron.v_m = 0
+
+            
         class SnakeEntity:
             """
             Emulates snake entity in primitive environment of classic snake game.
@@ -1824,19 +1963,5 @@ class Neuron:
 
 if __name__ == "__main__":
     # Run tests
+    Neuron.Simulation.NN.no_context_teacher_learning()
     Neuron.Test.run_all_tests()
-
-    # Run simulation
-    brain = Neuron.Simulation.NN(topology=[4,2])
-
-    # learning, etalon output [True, True, True, True]
-    for epoch in range(100):
-
-        brain.input([True, True, True, True])
-        brain.forward()
-
-        error_signal = 20 #random.randint(1, 100)
-        #brain.train_with_teacher([True, True], signal_out_type_mode='binary', learning_method='recursive_learning', error_signal = error_signal)
-
-
-    
