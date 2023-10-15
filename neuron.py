@@ -1,4 +1,5 @@
 import random
+import pygame
 
 class Neuron:
     """ 0 layer is for input neurons (sensors only layer), have less core processing."""
@@ -334,7 +335,7 @@ class Neuron:
     
 
     # Learning methods
-    def reinforcement(self, error): # one neuron learning
+    def reinforcement(self, error, stabilization=True): # one neuron learning
         # work only with involved connections (conn.spike=True)
         """
         A unique version of reinforcement Learning.
@@ -361,14 +362,17 @@ class Neuron:
             if self.spike is False:
                 error = -error
             for connect in self.connections:
-                connect = connect["neuron"]
                 # separation of connects as involv / without spike
-                if connect.get_output() != 0:
-                    self.add_weight(connect, error/self.get_s_stab(connect))
-                    self.add_s_stab(connect, stab_error=stab)
+                if connect["neuron"].get_output() != 0:
+                    if not stabilization:
+                        self.add_weight(connect["neuron"], error)
+                    else:
+                        self.add_weight(connect["neuron"], error/self.get_s_stab(connect["neuron"]))
+                        self.add_s_stab(connect["neuron"], stab_error=stab)
         
         # TODO: Assative learning with long associations of output history (several cycles)
-
+        # return error
+    
     def cooperation(self, error):
         """
         Cooperation mechanism:
@@ -397,8 +401,8 @@ class Neuron:
             # positive error and self spike=True will activate "DECOOPERATION"
             # potencialy can be used as network optimization by decreasing excessive connections. (analogous to firing people)
             pass
-    
-    def recursive_learning(self, error, retransmission_counter = None): # NOTE: do NOT pass depth_counter from outside! only for self recursion call!
+
+    def recursive_learning(self, error, retransmission_counter = None, cooperation=True, reinforcement=True): # NOTE: do NOT pass depth_counter from outside! only for self recursion call!
         """
         * recursion SHOULD BE CALLED FOR ALL NEURONS IN LAST LAYER OF NETWORK FROM OUTSIDE OF NEURON CLASS.
 
@@ -410,8 +414,10 @@ class Neuron:
             retransmission_counter = self.layer_dept
         if retransmission_counter > 0:
             # neuron learning
-            self.cooperation(error)
-            self.reinforcement(error)
+            if cooperation:
+                self.cooperation(error)
+            if reinforcement:
+                self.reinforcement(error)
             # print('im here-------------------------------<<< counter is ',retransmission_counter)
 
             # recursion call. limited by self.layer_depth
@@ -1295,8 +1301,8 @@ class Neuron:
                     # reinforce checkinng
                     # provide error signal to neuron and check if weight of connection is changed
                     neuron.reinforcement(error=-5)
-                    assert neuron.get_weight_and_ttl(neuron1)[0] == -25, f"Weight of connection 1 is incorrect. It should be -25."
-                    assert neuron.get_weight_and_ttl(neuron2)[0] == 45, f"Weight of connection 2 is incorrect. It should be 45."
+                    assert neuron.get_weight_and_ttl(neuron1)[0] == -25, f"Weight of connection {neuron.get_weight_and_ttl(neuron1)[0]} is incorrect. It should be -25."
+                    assert neuron.get_weight_and_ttl(neuron2)[0] == 45, f"Weight of connection {neuron.get_weight_and_ttl(neuron2)[0]} is incorrect. It should be 45."
 
                     # provide error signal to neuron and check if weight of connection is changed
                     neuron.reinforcement(error=15)
@@ -1775,7 +1781,7 @@ class Neuron:
                 Set input for sensors.
                 """
                 # check if input is correct
-                assert len(input) == len(self.layer[0]), f"Input is incorrect. It should be {len(self.layer[0])} elements."
+
                 # set input for sensors
                 for i, neuron in enumerate(self.layer[0]):
                     neuron.input = input[i]
@@ -1796,7 +1802,28 @@ class Neuron:
                 return [neuron.get_output() for neuron in self.layer[-1]]
             
             # TRAINING METHODS
-            
+            def cycle_without_teacher(self, error, context, learning_method = 'recursive_learning'):
+                if self.signal_type == 'binary':
+                    for neuron in self.layer[-1]:
+                        if learning_method == 'recursive_learning':
+                            neuron.recursive_learning(error=error)
+
+                        elif learning_method == 'reinforcement':
+                            neuron.reinforcement(error=error)
+
+                        elif learning_method == 'cooperation':
+                            neuron.cooperation(error=error)
+                        
+                elif self.signal_type == 'numeric':
+                    assert True, f"Numeric output is not implemented yet."
+                    pass # TODO: generate error signal for numeric output
+                
+                # NOTE: (NO CONTEXT LEARNING) reset spikes and membrane potentials of all neurons every cycle
+                if not context:
+                    for layer in self.layer:
+                        for neuron in layer:
+                            neuron.v_m = 0
+                
             def cycle_teacher(self, teacher:list, context, learning_method = 'recursive_learning', error_power = None):
                 """
                 Train network with teacher.
@@ -1812,7 +1839,7 @@ class Neuron:
                 for s in teacher:
                     assert type(s) == bool if self.signal_type == 'binary' else type(s) == float, f"Teacher is incorrect. It should be {len(self.layer[-1])} elements."
                 
-                # generate list of error signals for each output neuron by comparing teacher and output of neurons
+                # generate errors signals for each output neuron by comparing teacher and output of neurons
                 if error_power == None:
                     error_power = random.randint(0, 50)
                 learning_error = 0
@@ -1929,24 +1956,477 @@ class Neuron:
                 for layer in brain.layer:
                     for neuron in layer:
                         neuron.v_m = 0
-
-            
+    
         class SnakeEntity:
             """
             Emulates snake entity in primitive environment of classic snake game.
             Realization through incapsulation of 1. brain(AI) - NN class, 2. snake game, and 3th is connector between them.
             """
-            class SnakeGame:
+            class ConnectorSnackSnn:    
+                def __init__(self, brine, width, height):
+                    # Set the dimensions of the field
+                    self.brine = brine
+                    self.width = width
+                    self.height = height
+                    # data to/from the neural network
+                    self.go_to = "UP" #STOP
+                    self.game_state = {
+                        "field": [[0 for _ in range(width)] for _ in range(height)], 
+                        "direction": None,
+                        "food_direction": None,
+                        "food_distance": {"x": None, "y": None}
+                    }
+
+                # Entity methods
+
+                def ai_step(self):
+                    """
+                    Colled by the entity to compute the next move
+                    """
+                    self.brine.forward()
+                    data = self.brine.output()
+                    # print(data)
+                    if data == [True,0,0,0]:
+                        self.go_to = "Up"
+                    elif data == [0,True,0,0]:
+                        self.go_to = "Right"
+                    elif data == [0,0,True,0]:
+                        self.go_to = "Down"
+                    elif data == [0,0,0,True]:
+                        self.go_to = "Left"
+                    
+                    elif data == [True,True,False,False]:
+                        self.go_to = "UpRight"
+                    elif data == [False,True,True,False]:
+                        self.go_to = "DownRight"
+                    elif data == [False,False,True,True]:
+                        self.go_to = "DownLeft"
+                    elif data == [True,False,False,True]:
+                        self.go_to = "UpLeft"
+                        
+                def train(self, error):
+                    """
+                    Colled by the entity to train the neural network
+                    """
+                    self.brine.cycle_without_teacher(error=error, context=False, learning_method='recursive_learning')
+
+                    # print meedle value of all s_stab of last layer
+
+                    meedle_value1 = 0
+                    for neuron in self.brine.layer[-2]:
+                        for conn in neuron.connections:
+                            meedle_value1 += conn['s_stab']
+
+                    meedle_value2 = 0
+                    for neuron in self.brine.layer[-1]:
+                        for conn in neuron.connections:
+                            meedle_value2 += conn['s_stab']
+
+                    print('meedle_value1', round(meedle_value1/len(self.brine.layer[-3]),2), '\t-----', 'meedle_value2', round(meedle_value2/len(self.brine.layer[-2]),2))
+
+                def get_move_direction(self):
+                    """
+                    Colled by the entity to get the direction to move to
+                    """
+                    if self.go_to != None:
+                        go_to = self.go_to
+                        self.go_to = None
+                        return go_to
+                    else:
+                        return None
+                
+                def set_game_state(self, field, direction, food_direction, food_distance):
+                    """
+                    Colled by the entity to set the game state, which is then used by the neural network
+                    """
+                    self.game_state["field"] = field
+                    self.game_state["direction"] = direction
+                    self.game_state["food_direction"] = food_direction
+                    self.game_state["food_distance"] = food_distance
+                
+                    # transfer data to snn
+                    data = []
+
+                    # food direction
+                    if self.game_state["food_direction"] == "Up":
+                        data = [1, 0, 0, 0]
+                    elif self.game_state["food_direction"] == "Right":
+                        data = [0, 1, 0, 0]
+                    elif self.game_state["food_direction"] == "Down":
+                        data = [0, 0, 1, 0]
+                    elif self.game_state["food_direction"] == "Left":
+                        data = [0, 0, 0, 1]
+                        
+                    elif self.game_state["food_direction"] == "UpRight":
+                        data = [1, 1, 0, 0]
+                    elif self.game_state["food_direction"] == "DownRight":
+                        data = [0, 1, 1, 0]
+                    elif self.game_state["food_direction"] == "DownLeft":
+                        data = [0, 0, 1, 1]
+                    elif self.game_state["food_direction"] == "UpLeft":
+                        data = [1, 0, 0, 1]
+                    else:
+                        data = [0, 0, 0, 0] # STOP
+                    
+                    # food distance sum (x+y)
+                    distance = self.game_state["food_distance"]["x"] + self.game_state["food_distance"]["y"]
+                    if distance > (self.width + self.height) * 3/4:
+                        data += [0, 0, 0, 1]
+                    elif distance > (self.width + self.height) * 1/2:
+                        data += [0, 0, 1, 0]
+                    elif distance > (self.width + self.height) * 1/4:
+                        data += [0, 1, 0, 0]
+                    else:
+                        data += [1, 0, 0, 0]
+
+
+                    # direction
+                    if self.game_state["direction"] == "Up":
+                        data += [1, 0, 0, 0]
+                    elif self.game_state["direction"] == "Right":
+                        data += [0, 1, 0, 0]
+                    elif self.game_state["direction"] == "Down":
+                        data += [0, 0, 1, 0]
+                    elif self.game_state["direction"] == "Left":
+                        data += [0, 0, 0, 1]
+                    else:
+                        data += [0, 0, 0, 0] # STOP
+                    
+                    # head in field
+                    for row in self.game_state["field"]:
+                        for cell in row:
+                            if cell == '3':
+                                data.append(1)
+                            else:
+                                data.append(0)
+                    
+                    # body in field
+                    for row in self.game_state["field"]:
+                        for cell in row:
+                            if cell == '2':
+                                data.append(1)
+                            else:
+                                data.append(0)
+                    
+                    # if next step collides with boundary
+                    boundary_is_next = 0
+                    if self.game_state["direction"] == "Up":
+                        # check if head ('3') is in top row
+                        if '3' in self.game_state["field"][0]:
+                            print("UP collision")
+                            boundary_is_next = 1
+                    elif self.game_state["direction"] == "Right":
+                        # check if head ('3') is in right column
+                        if '3' in [row[-1] for row in self.game_state["field"]]:
+                            print("RIGHT collision")
+                            boundary_is_next = 1
+                    elif self.game_state["direction"] == "Down":
+                        # check if head ('3') is in bottom row
+                        if '3' in self.game_state["field"][-1]:
+                            print("DOWN collision")
+                            boundary_is_next = 1
+                    elif self.game_state["direction"] == "Left":
+                        # check if head ('3') is in left column
+                        if '3' in [row[0] for row in self.game_state["field"]]:
+                            print("LEFT collision")
+                            boundary_is_next = 1
+                            
+                    data.append(boundary_is_next)                            
+                    self.brine.input(data)
+                    
+                # Neural network methods
+                
+                def set_move_direction(self, go_to):
+                    """
+                    Colled by the neural network to set the direction to move to
+                    """
+                    self.go_to = go_to
+
+                def get_game_state(self):
+                    """
+                    Colled by the neural network to get the game state, which is then used to compute the next move
+                    """
+                    return self.game_state
+                
+            def __init__(self):
                 """
                 Snake and environment.
                 """
-                pass
+                self.brine = Neuron.Simulation.NN(topology=[77,8, 4])
+                # Set the dimensions of the game window
+                self.width = 160
+                self.height = 160
 
-            class Connector:
-                """
-                Connector between snake game and brain.
-                """
-                pass
+                self.data_width = 700
+                self.data_height = 500
+                # Define the colors to be used:
+                self.BLACK = (0, 0, 0)
+                self.WHITE = (255, 255, 255)
+                self.GREEN = (0, 255, 0)
+                self.RED   = (255, 0, 0)
+
+                # connect the snake to the SNN
+                self.connector = self.ConnectorSnackSnn(brine=self.brine, width=self.width, height=self.height)
+
+                # Initialize Pygame:
+                pygame.init()
+
+                # Create the game window
+                self.window = pygame.display.set_mode((self.width, self.height))
+                pygame.display.set_caption("Snake Game")
+
+                # Create the data window
+                self.data_window = pygame.display.set_mode((self.data_width, self.data_height))
+                pygame.display.set_caption("Data Window")
+
+                # Set up the game variables:
+                self.snake_block_size = 10
+                self.snake_speed = 15
+
+                self.x_change = 0
+                self.y_change = 0
+
+                self.clock = pygame.time.Clock()
+
+                self.font_style = pygame.font.SysFont(None, 30)
+                self.score_font = pygame.font.SysFont(None, 50)
+                self.game_data = pygame.font.SysFont(None, 20)
+                self.game_distance = pygame.font.SysFont(None, 20)
+                self.game_map = pygame.font.SysFont(None, 10)
+
+                #print meadl score of last 30 games
+                self.last_score = 0
+                self.score = 0
+                self.record = 0
+                self.game_count = 0
+
+            # Define functions for displaying the snake and the score:
+            def our_snake(self, snake_block_size, snake_list):
+                for x in snake_list:
+                    pygame.draw.rect(self.window, self.GREEN, [x[0], x[1], snake_block_size, self.snake_block_size])
+
+            def your_score(self, points):
+                # value = score_font.render("Score: " + str(points), True, WHITE)
+                # window.blit(value, [0, 0+height])
+                self.score += points
+                self.game_count += 1
+                if points > self.record:
+                        self.record = points
+                if self.game_count == 50:
+                    self.score = round(self.score/50)
+                    self.last_score = self.score
+                    self.score = 0
+                    self.game_count = 0
+                value = self.score_font.render("Middle Score by last 50 games: " + str(self.last_score), True, self.WHITE)
+                self.window.blit(value, [0, 0+self.height])
+                # show record
+                value = self.score_font.render("Record: " + str(self.record), True, self.WHITE)
+                self.window.blit(value, [0, 30+self.height])
+                # show actual score
+                value = self.score_font.render("Actual: " + str(points), True, self.WHITE)
+                self.window.blit(value, [0, 60+self.height])
+
+            def render_data(self, game_state):
+                self.data_window.blit(self.game_data.render("direction:            "  + str(game_state["direction"     ]), True, self.WHITE),[120, 200+self.height])
+                self.data_window.blit(self.game_data.render("food_direction:   "      + str(game_state["food_direction"]), True, self.WHITE),[120, 225+self.height])
+                
+            def render_distance(self, game_state):
+                self.data_window.blit(self.game_distance.render("food_distance:    "  + str(game_state["food_distance" ]), True, self.WHITE),[120, 250+self.height])
+                
+            def render_map(self, game_state):
+                field = game_state["field"]
+                for i, row in enumerate(field):
+                    row_str = ''.join(str(cell) for cell in row)
+                    self.data_window.blit(self.game_map.render(row_str, True, self.WHITE), [0, self.height+70 + 10 * i])
+
+            # Implement the game loop:
+            def game_loop(self):
+                game_over = False
+                game_end = False
+
+                # Initial position of the snake
+                x1 = self.width / 2
+                y1 = self.height / 2
+
+                # Change in position
+                x1_change = 0
+                y1_change = 0
+
+                # Snake body
+                snake_list = []
+                length_of_snake = 1
+
+                # Generate initial food position
+                foodx = round(random.randrange(0, self.width - self.snake_block_size) / 10.0) * 10.0
+                foody = round(random.randrange(0, self.height - self.snake_block_size) / 10.0) * 10.0
+
+                # Initialize snake_head
+                snake_head = []
+
+                points = 0
+                distance_to_food = abs(foodx - x1) + abs(foody - y1)
+                while not game_over:
+                    while game_end:
+
+                        # Reset game variables
+                        game_over = False
+                        game_end = False
+
+                        # Initial position of the snake
+                        x1 = self.width / 2
+                        y1 = self.height / 2
+
+                        # Change in position
+                        x1_change = 0
+                        y1_change = 0
+
+                        # Snake body
+                        snake_list = []
+                        length_of_snake = 1
+                        points = 0
+
+                        # Generate initial food position
+                        foodx = round(random.randrange(0, self.width - self.snake_block_size) / 10.0) * 10.0
+                        foody = round(random.randrange(0, self.height - self.snake_block_size) / 10.0) * 10.0
+
+                        # Initialize snake_head
+                        snake_head = []
+
+                    # Handle connector input events
+                    self.connector.ai_step()
+                    go_to = self.connector.get_move_direction()
+                    if go_to:
+                        if go_to == 'Left':
+                            x1_change = -self.snake_block_size
+                            y1_change = 0
+                        elif go_to == 'Right':
+                            x1_change = self.snake_block_size
+                            y1_change = 0
+                        elif go_to == 'Up':
+                            y1_change = -self.snake_block_size
+                            x1_change = 0
+                        elif go_to == 'Down':
+                            y1_change = self.snake_block_size
+                            x1_change = 0
+                        
+                        elif go_to == 'UpRight':
+                            y1_change = -self.snake_block_size
+                            x1_change = self.snake_block_size
+                        elif go_to == 'DownRight':
+                            y1_change = self.snake_block_size
+                            x1_change = self.snake_block_size
+                        elif go_to == 'DownLeft':
+                            y1_change = self.snake_block_size
+                            x1_change = -self.snake_block_size
+                        elif go_to == 'UpLeft':
+                            y1_change = -self.snake_block_size
+                            x1_change = -self.snake_block_size
+                            
+                    else:
+                        # Handle keypresses
+                        for event in pygame.event.get():
+                            if event.type == pygame.QUIT:
+                                game_over = True
+                            if event.type == pygame.KEYDOWN:
+                                if event.key == pygame.K_LEFT:
+                                    x1_change = -self.snake_block_size
+                                    y1_change = 0
+                                elif event.key == pygame.K_RIGHT:
+                                    x1_change = self.snake_block_size
+                                    y1_change = 0
+                                elif event.key == pygame.K_UP:
+                                    y1_change = -self.snake_block_size
+                                    x1_change = 0
+                                elif event.key == pygame.K_DOWN:
+                                    y1_change = self.snake_block_size
+                                    x1_change = 0
+
+                    # Check if the snake hits the boundary
+                    if x1 >= self.width or x1 < 0 or y1 >= self.height or y1 < 0:
+                        self.connector.train(error=-10)
+                        game_end = True
+                    # Update the snake's position
+                    x1 += x1_change
+                    y1 += y1_change
+
+                    self.window.fill(self.BLACK)
+
+                    # Draw border for game area
+                    pygame.draw.rect(self.window, self.WHITE, pygame.Rect(0, 0, self.width, self.height), 2) # 2 is border thickness
+                    
+                    pygame.draw.rect(self.window, self.RED, [foodx, foody, self.snake_block_size, self.snake_block_size])
+                    snake_head = []
+                    snake_head.append(x1)
+                    snake_head.append(y1)
+                    snake_list.append(snake_head)
+
+                    # Remove the extra segments of the snake if it gets longer
+                    if len(snake_list) > length_of_snake:
+                        del snake_list[0]
+
+                    # Check if the snake hits itself
+                    for x in snake_list[:-1]:
+                        if x == snake_head:
+                            self.connector.train(error=-5)
+                            game_end = True
+
+                    # Update the snake and food display
+                    self.our_snake(self.snake_block_size, snake_list)
+                    self.your_score(points)
+                    # pygame.display.update()
+
+                    # Check if the snake eats the food
+                    if x1 == foodx and y1 == foody:
+                        foodx = round(random.randrange(0, self.width - self.snake_block_size) / 10.0) * 10.0
+                        foody = round(random.randrange(0, self.height - self.snake_block_size) / 10.0) * 10.0
+                        length_of_snake += 1
+                        points += 1
+                        self.connector.train(error=10)
+                    
+
+
+
+                    #check if snake is moving further away from food
+                    if distance_to_food < abs(foodx - x1) + abs(foody - y1):
+                        self.connector.train(error=-2)
+                    elif distance_to_food > abs(foodx - x1) + abs(foody - y1):
+                        self.connector.train(error=2)
+                        
+                    distance_to_food = abs(foodx - x1) + abs(foody - y1)
+
+                    
+                    # Set game state
+                    field = [[' ' for _ in range(self.width)] for _ in range(self.height)]
+                    field[int(foody / self.snake_block_size)][int(foodx / self.snake_block_size)] = 1  # food
+
+                    for i, (x, y) in enumerate(snake_list):
+                        if i == len(snake_list) - 1:  # this is the head of the snake
+                            field[int(y / self.snake_block_size)][int(x / self.snake_block_size)] = '3'  # snake head
+                        else:
+                            field[int(y / self.snake_block_size)][int(x / self.snake_block_size)] = '2'  # snake body
+                    direction = {(-self.snake_block_size, 0): 'Left', (self.snake_block_size, 0): 'Right', (0, -self.snake_block_size): 'Up', (0, self.snake_block_size): 'Down'}.get((x1_change, y1_change), None)
+                    food_direction = ('Up' if snake_head[1] > foody else 'Down' if snake_head[1] < foody else '') + \
+                            ('Left' if snake_head[0] > foodx else 'Right' if snake_head[0] < foodx else '')
+                    food_distance = {"x": abs(foodx - x1), "y": abs(foody - y1)}
+
+
+                    # draw the data
+                    self.render_data(self.connector.get_game_state())
+                    self.render_distance(self.connector.get_game_state())
+                    self.render_map(self.connector.get_game_state())
+
+                    self.clock.tick(self.snake_speed)
+                    pygame.display.update()
+                    self.connector.set_game_state(field, direction, food_direction, food_distance)
+
+                pygame.quit()
+                quit()
+
+            # Start the game
+            @staticmethod
+            def game():
+                snake = Neuron.Simulation.SnakeEntity()
+                snake.game_loop()
 
     class Benchmark:
         """
@@ -1965,3 +2445,4 @@ if __name__ == "__main__":
     # Run tests
     Neuron.Simulation.NN.no_context_teacher_learning()
     Neuron.Test.run_all_tests()
+    Neuron.Simulation.SnakeEntity.game()
