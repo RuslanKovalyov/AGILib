@@ -1806,7 +1806,6 @@ class Neuron:
                 for neuron in self.layer[-1]:
                     neuron.backprop(error=error)
                         
-
             def cycle_without_teacher(self, error, context, learning_method = 'recursive_learning'):
                 if self.signal_type == 'binary':
                     for neuron in self.layer[-1]:
@@ -1886,8 +1885,7 @@ class Neuron:
             
             @staticmethod
             def no_context_teacher_learning():
-                                # Run simulation
-                brain = Neuron.Simulation.NN(topology=[4,8 ,4])
+                brain = Neuron.Simulation.NN(topology=[4,16 ,4])
                 # set leakages of hidden layer to 100
                 for layer in brain.layer[1:-1]:
                     for neuron in layer:
@@ -1914,6 +1912,20 @@ class Neuron:
 
                     for epoch in range(i):
                         print('\n\nepoch', epoch+1)
+                        brain.input([False, True, True, False])
+                        print('v_m', brain.layer[1][0].v_m)
+                        print('weight', brain.layer[1][0].connections[0]['weight'])
+                        brain.forward()
+                        print('forwarding')
+                        print('spike', brain.layer[1][0].spike)
+                        print('v_m', brain.layer[1][0].v_m)
+                        print('output', brain.output())
+                        print('stab', brain.layer[1][0].get_s_stab(brain.layer[0][0]))
+                        # learning, etalon output [True, False, False, True]
+                        brain.cycle_teacher([False, True, False, True], context=False, error_power=7, learning_method='recursive_learning')
+
+                    for epoch in range(i):
+                        print('\n\nepoch', epoch+1)
                         brain.input([False, False, True, True])
                         print('v_m', brain.layer[1][0].v_m)
                         print('weight', brain.layer[1][0].connections[0]['weight'])
@@ -1928,40 +1940,33 @@ class Neuron:
 
 
                 print("\n\n---------------------------------------------------------")
+                for _ in range(2):
+                    print("---------------------------------------------------------")
+                    brain.input([True, True, False, False])
+                    brain.forward()
+                    print('output', brain.output())
+                    # reset all v_m in nn
+                    for layer in brain.layer:
+                        for neuron in layer:
+                            neuron.v_m = 0
 
-                print("---------------------------------------------------------")
-                brain.input([True, True, False, False])
-                brain.forward()
-                print('output', brain.output())
-                # reset all v_m in nn
-                for layer in brain.layer:
-                    for neuron in layer:
-                        neuron.v_m = 0
+                    print("---------------------------------------------------------")
+                    brain.input([False, True, True, False])
+                    brain.forward()
+                    print('output', brain.output())
+                    for layer in brain.layer:
+                        for neuron in layer:
+                            neuron.v_m = 0
 
-                print("---------------------------------------------------------")
-                brain.input([False, False, True, True])
-                brain.forward()
-                print('output', brain.output())
-                for layer in brain.layer:
-                    for neuron in layer:
-                        neuron.v_m = 0
+                    print("---------------------------------------------------------")
+                    brain.input([False, False, True, True,])
+                    brain.forward()
+                    print('output', brain.output())
+                    for layer in brain.layer:
+                        for neuron in layer:
+                            neuron.v_m = 0
 
-                print("---------------------------------------------------------")
-                brain.input([True, True, False, False])
-                brain.forward()
-                print('output', brain.output())
-                for layer in brain.layer:
-                    for neuron in layer:
-                        neuron.v_m = 0
-
-                print("---------------------------------------------------------")
-                brain.input([False, False, True, True])
-                brain.forward()
-                print('output', brain.output())
-                for layer in brain.layer:
-                    for neuron in layer:
-                        neuron.v_m = 0
-    
+                
         class SnakeEntity:
             """
             Emulates snake entity in primitive environment of classic snake game.
@@ -2455,6 +2460,6 @@ class Neuron:
 
 if __name__ == "__main__":
     # Run tests
-    # Neuron.Simulation.NN.no_context_teacher_learning()
-    # Neuron.Test.run_all_tests()
-    Neuron.Simulation.SnakeEntity.game()
+    Neuron.Simulation.NN.no_context_teacher_learning()
+    Neuron.Test.run_all_tests()
+    # Neuron.Simulation.SnakeEntity.game()
