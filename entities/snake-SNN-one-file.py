@@ -135,25 +135,31 @@ class Neuron:
         self.core = core
         self.is_training = False
 
-    def simple_cycle_by_cycle_learning(self, error):
-        if error != 0:
-            for dendrite in self.core.dendrites:
-                if dendrite.last_input_state and dendrite.last_input_state[0] != "":        # if input of dendrite have some transmitter (not empty string)
-                    # the error is applied to the dendrite's weight
-                    dendrite.weight = round(dendrite.weight + (error if self.core.membrane.spike else -error), 3)
-                    # the weight is limited to the range [min_weight, max_weight]
-                    dendrite.weight = max(min(dendrite.weight, dendrite.max_weight), dendrite.min_weight)
+    # def simple_cycle_by_cycle_learning(self, error):
+    #     if error != 0:
+    #         for dendrite in self.core.dendrites:
+    #             if dendrite.last_input_state and dendrite.last_input_state[0] != "":        # if input of dendrite have some transmitter (not empty string)
+    #                 # the error is applied to the dendrite's weight
+    #                 dendrite.weight = round(dendrite.weight + (error if self.core.membrane.spike else -error), 3)
+    #                 # the weight is limited to the range [min_weight, max_weight]
+    #                 dendrite.weight = max(min(dendrite.weight, dendrite.max_weight), dendrite.min_weight)
+
+    # def backward_propagate(self, error):
+    #     self.simple_cycle_by_cycle_learning(error)
+    #     for dendrite in self.core.dendrites:
+    #         if dendrite.last_input_state and dendrite.last_input_state[0] != "":                # if input of dendrite have some transmitter (not empty string)
+    #             if dendrite.post_synapse and hasattr(dendrite.post_synapse, 'parent_neuron'):   # if dendrite have post_synapse and post_synapse have parent_neuron
+    #                 if self.core.membrane.spike:
+    #                     dendrite.post_synapse.parent_neuron.backward_propagate(error=error + dendrite.weight)
+    #                 else:
+    #                     # opposite sign of error with random coefficient
+    #                     dendrite.post_synapse.parent_neuron.backward_propagate(error=-(error + dendrite.weight * random.uniform(0.7, 1.3)))
 
     def backward_propagate(self, error):
-        self.simple_cycle_by_cycle_learning(error)
         for dendrite in self.core.dendrites:
-            if dendrite.last_input_state and dendrite.last_input_state[0] != "":                # if input of dendrite have some transmitter (not empty string)
-                if dendrite.post_synapse and hasattr(dendrite.post_synapse, 'parent_neuron'):   # if dendrite have post_synapse and post_synapse have parent_neuron
-                    if self.core.membrane.spike:
-                        dendrite.post_synapse.parent_neuron.backward_propagate(error=error + dendrite.weight)
-                    else:
-                        # opposite sign of error with random coefficient
-                        dendrite.post_synapse.parent_neuron.backward_propagate(error=-(error + dendrite.weight * random.uniform(0.7, 1.3)))
+            dendrite.weight = max(min(round(dendrite.weight + (error), 3), dendrite.max_weight), dendrite.min_weight)
+            if dendrite.post_synapse and hasattr(dendrite.post_synapse, 'parent_neuron'):
+                dendrite.post_synapse.parent_neuron.backward_propagate(error)
 
     def cumulative_learning(self):
         pass
@@ -172,20 +178,14 @@ class SensorNeuron:
         self.output_value = False 
 
     def set_input(self, value):
-        self.input_value = round(self.input_value + value, 3)
-        # the input value is limited to the range [0, 1]
-        self.input_value = min(self.input_value, 1)
+        self.input_value = min(value, 1)
 
     def step(self):
-        if self.input_value > self.sensitivity:
+        if self.input_value:
             self.output_value = True
             self.input_value = 0
         else:
             self.output_value = False
-            if self.input_value > 0:
-                self.input_value = round(self.input_value - self.leak_rate, 3)
-                # the input value is limited to the range [0, 1]
-                self.input_value = max(self.input_value, 0)
 
     def receive(self):
         return "simple-signal-mediator" if self.output_value else ""
@@ -202,8 +202,7 @@ class MotorNeuron:
         self.output_value = 0
         for synapse in self.post_synapses:
             if synapse.receive() != "": # if synapse have some transmitter (not empty string)
-                self.output_value += 1
-        self.output_value = self.output_value
+                self.output_value = 1
 
 class Brine:
     def __init__(self, input_size, hidden_size=[4,], output_size=1):
@@ -271,23 +270,16 @@ class Brine:
         return [motor.output_value for motor in self.motors]
 
     def train(self, error):                    
-        errors = []  # Calculate the appropriate errors here
-        for i, neuron in enumerate(self.layers[-1]):
-            # neuron.backward_propagate(errors[i])
-            if neuron.core.membrane.spike:
-                    neuron.backward_propagate(error = error)
-            else:
-                neuron.backward_propagate(error = -error)
+        # errors = []  # Calculate the appropriate errors here
+        for neuron in self.layers[-1]:
+            neuron.backward_propagate(error)
 
-        # more errors stimulations for all layers to fasten the training ( not sure if it is correct )
-        for i in range(len(self.layers)-1, -1, -1):
-            layer = self.layers[i]
-            for j in range(len(layer)):
-                neuron = layer[j]
-                if neuron.core.membrane.spike:
-                    neuron.backward_propagate(error = error)
-                else:
-                    neuron.backward_propagate(error = -error)
+        # # more errors stimulations for all layers to fasten the training ( not sure if it is correct )
+        # for i in range(len(self.layers)-1, -1, -1):
+        #     layer = self.layers[i]
+        #     for j in range(len(layer)):
+        #         neuron = layer[j]
+        #         neuron.backward_propagate(error)
 
 brine = Brine(input_size=(8*8)+4+8+1, hidden_size=[8,], output_size=4)
 class ConnectorSnackSnn:    

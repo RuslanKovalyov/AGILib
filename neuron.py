@@ -432,14 +432,14 @@ class Neuron:
         """
         pass
     
-    def backprop(self):
+    def backprop(self, error):
         """
         Backpropagation of error. 
         """
-        # NOT IMPLEMENTED YET. TODO: Backpropagation logic
-        
-        # NOTE: Take care of TTL weights in propagation implementation.
-        pass
+        for connection in self.connections:
+            connection['weight'] = max(min(round(connection['weight'] + (error), self.rounding), self.min_max_weight[1]), self.min_max_weight[0])
+            if connection['neuron'].layer_dept > 0: # 0 is input layer
+                connection['neuron'].backprop(error)
 
     def hebbian(self):
         """
@@ -1802,6 +1802,11 @@ class Neuron:
                 return [neuron.get_output() for neuron in self.layer[-1]]
             
             # TRAINING METHODS
+            def backprop(self, error):
+                for neuron in self.layer[-1]:
+                    neuron.backprop(error=error)
+                        
+
             def cycle_without_teacher(self, error, context, learning_method = 'recursive_learning'):
                 if self.signal_type == 'binary':
                     for neuron in self.layer[-1]:
@@ -1882,7 +1887,7 @@ class Neuron:
             @staticmethod
             def no_context_teacher_learning():
                                 # Run simulation
-                brain = Neuron.Simulation.NN(topology=[4,5,5,4])
+                brain = Neuron.Simulation.NN(topology=[4,8 ,4])
                 # set leakages of hidden layer to 100
                 for layer in brain.layer[1:-1]:
                     for neuron in layer:
@@ -1963,9 +1968,15 @@ class Neuron:
             Realization through incapsulation of 1. brain(AI) - NN class, 2. snake game, and 3th is connector between them.
             """
             class ConnectorSnackSnn:    
-                def __init__(self, brine, width, height):
+                def __init__(self, width, height):
                     # Set the dimensions of the field
-                    self.brine = brine
+                    self.brine = Neuron.Simulation.NN(topology=[77,8, 4])
+
+                    # set leakages to 100 and reset ratio to 0
+                    for layer in self.brine.layer[1:-1]:
+                        for neuron in layer:
+                            neuron.set_properties(leakage=100, reset_ratio=0)
+
                     self.width = width
                     self.height = height
                     # data to/from the neural network
@@ -2008,7 +2019,9 @@ class Neuron:
                     """
                     Colled by the entity to train the neural network
                     """
-                    self.brine.cycle_without_teacher(error=error, context=False, learning_method='recursive_learning')
+                    # self.brine.cycle_without_teacher(error=error, context=False, learning_method='recursive_learning')
+                    self.brine.backprop(error)
+
 
                     # print meedle value of all s_stab of last layer
 
@@ -2022,7 +2035,7 @@ class Neuron:
                         for conn in neuron.connections:
                             meedle_value2 += conn['s_stab']
 
-                    print('meedle_value1', round(meedle_value1/len(self.brine.layer[-3]),2), '\t-----', 'meedle_value2', round(meedle_value2/len(self.brine.layer[-2]),2))
+                    print('meedle stab value1', round(meedle_value1/len(self.brine.layer[-3]),2), '\t-----', 'meedle stab value2', round(meedle_value2/len(self.brine.layer[-2]),2))
 
                 def get_move_direction(self):
                     """
@@ -2152,7 +2165,6 @@ class Neuron:
                 """
                 Snake and environment.
                 """
-                self.brine = Neuron.Simulation.NN(topology=[77,8, 4])
                 # Set the dimensions of the game window
                 self.width = 160
                 self.height = 160
@@ -2166,7 +2178,7 @@ class Neuron:
                 self.RED   = (255, 0, 0)
 
                 # connect the snake to the SNN
-                self.connector = self.ConnectorSnackSnn(brine=self.brine, width=self.width, height=self.height)
+                self.connector = self.ConnectorSnackSnn(width=self.width, height=self.height)
 
                 # Initialize Pygame:
                 pygame.init()
@@ -2343,7 +2355,7 @@ class Neuron:
 
                     # Check if the snake hits the boundary
                     if x1 >= self.width or x1 < 0 or y1 >= self.height or y1 < 0:
-                        self.connector.train(error=-10)
+                        self.connector.train(error=-0.01)
                         game_end = True
                     # Update the snake's position
                     x1 += x1_change
@@ -2381,16 +2393,16 @@ class Neuron:
                         foody = round(random.randrange(0, self.height - self.snake_block_size) / 10.0) * 10.0
                         length_of_snake += 1
                         points += 1
-                        self.connector.train(error=10)
+                        self.connector.train(error=20)
                     
 
 
 
                     #check if snake is moving further away from food
                     if distance_to_food < abs(foodx - x1) + abs(foody - y1):
-                        self.connector.train(error=-2)
+                        self.connector.train(error=-0.01)
                     elif distance_to_food > abs(foodx - x1) + abs(foody - y1):
-                        self.connector.train(error=2)
+                        self.connector.train(error=0.001)
                         
                     distance_to_food = abs(foodx - x1) + abs(foody - y1)
 
@@ -2443,6 +2455,6 @@ class Neuron:
 
 if __name__ == "__main__":
     # Run tests
-    Neuron.Simulation.NN.no_context_teacher_learning()
-    Neuron.Test.run_all_tests()
+    # Neuron.Simulation.NN.no_context_teacher_learning()
+    # Neuron.Test.run_all_tests()
     Neuron.Simulation.SnakeEntity.game()
