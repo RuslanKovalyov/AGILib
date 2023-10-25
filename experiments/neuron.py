@@ -1,6 +1,6 @@
 import random
 import pygame
-
+import numpy as np
 class Neuron:
     """ 0 layer is for input neurons (sensors only layer), have less core processing."""
     def __init__(self, layer_dept = None, signal_type = "binary", refactory_period=0):
@@ -2458,8 +2458,32 @@ class Neuron:
         """
         pass
 
+class BaseNeuron:
+    def __init__(self, inputs, weights, bias):
+        self.inputs = np.array(inputs)
+        self.weights = np.array(weights)
+        # self.ttls, self.stabs
+
+        self.bias = bias
+        self.output = np.zeros(1)
+
+    def forward(self):
+        weighted_sum = np.dot(self.inputs, self.weights) + self.bias
+
+        self.output = weighted_sum
+
+    def set_weights(self, weights):
+        self.weights = np.array(weights)
+
+    def set_bias(self, bias):
+        self.bias = bias
+
+    def get_output(self):
+        return self.output
+
 if __name__ == "__main__":
     # Run tests
-    Neuron.Simulation.NN.no_context_teacher_learning()
+    # Neuron.Simulation.NN.no_context_teacher_learning()
     Neuron.Test.run_all_tests()
     # Neuron.Simulation.SnakeEntity.game()
+    pass
