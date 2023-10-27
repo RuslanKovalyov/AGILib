@@ -1,7 +1,7 @@
 import os
 import ai
 
-brain = ai.Brain(input_size=(8*8)+4+8+1, hidden_size=[80,], output_size=4)
+brain = ai.Brain(input_size=(8*8)+4+8+1, hidden_size=[4], output_size=4)
 print(len(brain.sensors))
 class ConnectorSnackSnn:    
     def __init__(self, width, height):
@@ -42,6 +42,8 @@ class ConnectorSnackSnn:
             self.go_to = "DownLeft"
         elif data == [1,0,0,1]:
             self.go_to = "UpLeft"
+        else: #NOTE: error to incorrect data
+            self.train(error=-0.01)
             
     def train(self, error):
         """

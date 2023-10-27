@@ -33,7 +33,7 @@ class Neuron:
             for dendrite in self.core.dendrites:
                 if dendrite.last_input_state and dendrite.last_input_state[0] != "":        # if input of dendrite have some transmitter (not empty string)
                     # the error is applied to the dendrite's weight
-                    dendrite.weight = round(dendrite.weight + (error if self.core.membrane.spike else -error), 3)
+                    dendrite.weight = round(dendrite.weight + error, 3)
                     # the weight is limited to the range [min_weight, max_weight]
                     dendrite.weight = max(min(dendrite.weight, dendrite.max_weight), dendrite.min_weight)
 
@@ -47,14 +47,14 @@ class Neuron:
         self.simple_cycle_by_cycle_learning(error)
 
         
-        for dendrite in self.core.dendrites:
-            if dendrite.last_input_state and dendrite.last_input_state[0] != "":                # if input of dendrite have some transmitter (not empty string)
-                if dendrite.post_synapse and hasattr(dendrite.post_synapse, 'parent_neuron'):   # if dendrite have post_synapse and post_synapse have parent_neuron
-                    if self.core.membrane.spike:
-                        dendrite.post_synapse.parent_neuron.backward_propagate(error=error + dendrite.weight)
-                    else:
-                        # opposite sign of error with random coefficient
-                        dendrite.post_synapse.parent_neuron.backward_propagate(error=-(error + dendrite.weight * random.uniform(0.7, 1.3)))
+        # for dendrite in self.core.dendrites:
+        #     if dendrite.last_input_state and dendrite.last_input_state[0] != "":                # if input of dendrite have some transmitter (not empty string)
+        #         if dendrite.post_synapse and hasattr(dendrite.post_synapse, 'parent_neuron'):   # if dendrite have post_synapse and post_synapse have parent_neuron
+        #             if self.core.membrane.spike:
+        #                 dendrite.post_synapse.parent_neuron.backward_propagate(error=error + dendrite.weight)
+        #             else:
+        #                 # opposite sign of error with random coefficient
+        #                 dendrite.post_synapse.parent_neuron.backward_propagate(error=-(error + dendrite.weight * random.uniform(0.7, 1.3)))
 
     def cumulative_learning(self):
         """
