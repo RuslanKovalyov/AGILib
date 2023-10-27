@@ -1,7 +1,7 @@
 import os
 import ai
 
-brain = ai.Brine(input_size=(8*8)+4+8+1, hidden_size=[80,], output_size=4)
+brain = ai.Brain(input_size=(8*8)+4+8+1, hidden_size=[80,], output_size=4)
 print(len(brain.sensors))
 class ConnectorSnackSnn:    
     def __init__(self, width, height):

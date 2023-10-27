@@ -15,7 +15,7 @@ from snn.synapses import Synapse
 from snn.cores import Core
 from snn.neurons import Neuron, SensorNeuron, MotorNeuron
 
-class Brine:
+class Brain:
     def __init__(self, input_size, hidden_size=[4,], output_size=1):
          # Create sensor neurons
         self.sensors = [SensorNeuron() for _ in range(input_size)]
