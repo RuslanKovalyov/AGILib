@@ -1,8 +1,8 @@
 import os
 import ai
 
-brine = ai.Brine(input_size=(8*8)+4+8+1, hidden_size=[80,], output_size=4)
-print(len(brine.sensors))
+brain = ai.Brine(input_size=(8*8)+4+8+1, hidden_size=[80,], output_size=4)
+print(len(brain.sensors))
 class ConnectorSnackSnn:    
     def __init__(self, width, height):
         # Set the dimensions of the field
@@ -23,7 +23,7 @@ class ConnectorSnackSnn:
         """
         Colled by the entity to compute the next move
         """
-        data = brine.step()
+        data = brain.step()
         # print(data)
         if data == [1,0,0,0]:
             self.go_to = "Up"
@@ -47,7 +47,7 @@ class ConnectorSnackSnn:
         """
         Colled by the entity to train the neural network
         """
-        brine.train(error=error)
+        brain.train(error=error)
 
     def get_move_direction(self):
         """
@@ -159,7 +159,7 @@ class ConnectorSnackSnn:
         data.append(boundary_is_next)        
         
         
-        brine.input(tuple(data))
+        brain.input(tuple(data))
         
    
     # Neural network methods
