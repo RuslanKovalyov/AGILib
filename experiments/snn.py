@@ -36,7 +36,7 @@ class SpikingNeuralNetwork:
             error = np.dot(self.weights[i].T, error)
 
 # Example Usage
-topology = [4, 800, 80, 8]
+topology = [4, 8]
 snn = SpikingNeuralNetwork(topology)
 
 input_data = np.array([True, True, True, False])
@@ -49,11 +49,11 @@ input_data3 = np.array([False, False, False, True])
 target_data3 = np.array([True, True, True, False, False, True, False, True])
 
 epochs = 20
-learning_rate = 0.05
+learning_rate = 0.5
 
 for _ in range(epochs):
     if learning_rate > 0.001:
-        learning_rate = round(learning_rate * 0.999, 5) # make rate highi in start and then decrease it to effectively train the network
+        learning_rate = round(learning_rate * 0.9, 5) # make rate highi in start and then decrease it to effectively train the network
     print(learning_rate)
     snn.train(input_data, target_data, learning_rate)
     snn.train(input_data2, target_data2, learning_rate)
