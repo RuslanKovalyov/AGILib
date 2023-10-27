@@ -43,8 +43,6 @@ class ConnectorSnackSnn:
         elif data == [1,0,0,1]:
             self.go_to = "UpLeft"
             
-        
-
     def train(self, error):
         """
         Colled by the entity to train the neural network
@@ -164,7 +162,6 @@ class ConnectorSnackSnn:
         brine.input(tuple(data))
         
    
-    
     # Neural network methods
     
     def set_move_direction(self, go_to):
