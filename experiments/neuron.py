@@ -439,12 +439,10 @@ class Neuron:
         pass
     
     def backprop(self, error):
-        if error != 0:
-            for connection in self.connections:
-                if connection['neuron'].get_output():     
-                    connection['weight'] = max(min(round(connection['weight'] + error, self.rounding), self.min_max_weight[1]), self.min_max_weight[0])
-                if connection['neuron'].layer_dept > 0: # 0 is input layer
-                    connection['neuron'].backprop(error)
+        for connection in self.connections:
+            connection['weight'] = max(min(round(connection['weight'] + error, self.rounding), self.min_max_weight[1]), self.min_max_weight[0])
+            if connection['neuron'].layer_dept > 1: # 1 is connection to input layer '0'
+                connection['neuron'].backprop(error/len(self.connections))
 
     def hebbian(self):
         """
@@ -2503,7 +2501,7 @@ class NN:
         print(f'Topology of network: in-->{topology}<--out')
         print('-------------------')
         for i, layer in enumerate(self.layer):
-            print(f'Layer {i}:', f'N({len(layer)}) \t', 'n '*len(layer))
+            print(f'Layer {i}:', f'N({len(layer)}) \n', 'n '*len(layer),'\n')
         
         # connect neurons
         if connections_type == 'full':
@@ -2642,11 +2640,12 @@ class Brain:
         self.nn = NN(topology=self.topology)
 
         # set neurons properties
-        for neuron in self.nn.layer[1:-1]:
-            neuron.set_properties(threshold=20, refractory_period=0, leakage=1, reset_ratio=0.0, min_max_input=(-1000, 1000), sensitivity_adjust_rate=0, sensitivity_restore_rate=100, sensitivity=100, sensitivity_normal=100)
-            # set random weights for connections - 20 t0 20
-            for conn in neuron.connections:
-                conn['weight'] = random.randint(-20, 20)
+        for layer in self.nn.layer[1:]:
+            for neuron in layer:
+                neuron.set_properties(threshold=20, refractory_period=0, leakage=1, reset_ratio=0.0, min_max_input=(-100, 100), sensitivity_adjust_rate=0, sensitivity_restore_rate=100, sensitivity=100, sensitivity_normal=100)
+                # set random weights for connections - 20 t0 20
+                for conn in neuron.connections:
+                    conn['weight'] = random.randint(-20, 20)
     
     def input(self, data):
         # det input data to nn sensors
@@ -2673,7 +2672,7 @@ class ConnectorSnackSnn:
         self.width = field_width
         self.height = field_height
         # data to/from the neural network
-        self.brain = Brain(input_size=(8*8)+4+8+1, hidden_size=[], output_size=4)
+        self.brain = Brain(input_size=(8*8)+4+8+1, hidden_size=[8,], output_size=4)
         self.go_to = "UP" #STOP
         self.game_state = {
             "field": [[0 for _ in range(self.width)] for _ in range(self.height)], 
@@ -2710,7 +2709,7 @@ class ConnectorSnackSnn:
             self.go_to = "UpLeft"
         
         else: #NOTE: error to incorrect data
-            self.train(error=-1)
+            self.train(error=-0.01)
     
     def train(self, error):
         """

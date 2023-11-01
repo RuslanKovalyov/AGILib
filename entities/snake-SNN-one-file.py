@@ -157,7 +157,7 @@ class Neuron:
 
     def backward_propagate(self, error):
         for dendrite in self.core.dendrites:
-            dendrite.weight = max(min(round(dendrite.weight + (error), 3), dendrite.max_weight), dendrite.min_weight)
+            dendrite.weight = max(min(round(dendrite.weight + error, 3), dendrite.max_weight), dendrite.min_weight)
             if dendrite.post_synapse and hasattr(dendrite.post_synapse, 'parent_neuron'):
                 dendrite.post_synapse.parent_neuron.backward_propagate(error)
 
@@ -205,7 +205,7 @@ class MotorNeuron:
                 self.output_value = 1
 
 class Brine:
-    def __init__(self, input_size, hidden_size=[4,], output_size=1):
+    def __init__(self, input_size, hidden_size=[4,4], output_size=1):
          # Create sensor neurons
         self.sensors = [SensorNeuron() for _ in range(input_size)]
 
@@ -281,7 +281,7 @@ class Brine:
         #         neuron = layer[j]
         #         neuron.backward_propagate(error)
 
-brine = Brine(input_size=(8*8)+4+8+1, hidden_size=[8,], output_size=4)
+brine = Brine(input_size=(8*8)+4+8+1, hidden_size=[80,80], output_size=4)
 class ConnectorSnackSnn:    
     def __init__(self, width, height):
         # Set the dimensions of the field
@@ -303,6 +303,7 @@ class ConnectorSnackSnn:
         Colled by the entity to compute the next move
         """
         data = brine.step()
+        print(data)
         # print(data)
         if data == [1,0,0,0]:
             self.go_to = "Up"
@@ -321,6 +322,9 @@ class ConnectorSnackSnn:
             self.go_to = "DownLeft"
         elif data == [1,0,0,1]:
             self.go_to = "UpLeft"
+        else:
+            self.train(error=-0.01)
+
             
         
 
