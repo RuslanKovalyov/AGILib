@@ -2460,30 +2460,6 @@ class Neuron:
         """
         pass
 
-# class BaseNeuron:
-#     def __init__(self, inputs, weights, bias):
-#         self.inputs = np.array(inputs)
-#         self.weights = np.array(weights)
-#         # self.ttls, self.stabs
-
-#         self.bias = bias
-#         self.output = np.zeros(1)
-
-#     def forward(self):
-#         weighted_sum = np.dot(self.inputs, self.weights) + self.bias
-
-#         self.output = weighted_sum
-
-#     def set_weights(self, weights):
-#         self.weights = np.array(weights)
-
-#     def set_bias(self, bias):
-#         self.bias = bias
-
-#     def get_output(self):
-#         return self.output
-
-# Snake game based on Neuron class
 class NN:
     """
     Neural network which will be used as brain of snake entity.
@@ -2672,7 +2648,7 @@ class ConnectorSnackSnn:
         self.width = field_width
         self.height = field_height
         # data to/from the neural network
-        self.brain = Brain(input_size=(8*8)+4+8+1, hidden_size=[8,], output_size=4)
+        self.brain = Brain(hidden_size=[80,])
         self.go_to = "UP" #STOP
         self.game_state = {
             "field": [[0 for _ in range(self.width)] for _ in range(self.height)], 
