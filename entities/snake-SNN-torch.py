@@ -16,7 +16,7 @@ EPISODES = 100_000
 EPSILON = 1
 EPSILON_DECAY = 0.995
 EPSILON_MIN = 0.01
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 window_delay = 0
 
 # Neural Network Model
@@ -26,13 +26,15 @@ class DQN(nn.Module):
         self.fc1 = nn.Linear(BOARD_SIZE * BOARD_SIZE, 2400)
         self.fc2 = nn.Linear(2400, 2400)
         self.fc3 = nn.Linear(2400, 240)
-        self.fc4 = nn.Linear(240, 4)  # 4 actions
+        self.fc4 = nn.Linear(240, 240)
+        self.fc5 = nn.Linear(240, 4)  # 4 actions
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         x = torch.relu(self.fc3(x))
-        return self.fc4(x)
+        x = torch.relu(self.fc4(x))
+        return self.fc5(x)
 
 # DQNAgent with a target network
 class DQNAgent:
@@ -65,7 +67,9 @@ class SnakeGame:
 
     def _get_state(self):
         state = np.zeros((BOARD_SIZE, BOARD_SIZE), dtype=int)
-        for segment in self.snake:
+        # head state
+        state[self.snake[-1][0]][self.snake[-1][1]] = 3
+        for segment in self.snake[:-1]:
             state[segment[0]][segment[1]] = 1
         state[self.food[0]][self.food[1]] = 2
         return state.flatten()
@@ -116,7 +120,7 @@ class SnakeGame:
     def close(self):
         pygame.quit()
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("mps")
 agent = DQNAgent(DQN, LR)
 memory = []
 env = SnakeGame()
